@@ -343,9 +343,9 @@ fn Transact() -> impl IntoView {
                     {items_resource.get().map(|result| {
                         match result {
                             Ok(items) => {
-                                if items.len() < 3 {
+                                if items.len() < 2 {
                                     return view! {
-                                        <div class="flex flex-col items-center text-center px-10 py-10"><p>"You must have three accounts in order to transact!"</p></div>
+                                        <div class="flex flex-col items-center text-center px-10 py-10"><p>"You must have two accounts in order to transact!"</p></div>
                                     }.into_view()
                                 }
                                 return view! {
@@ -356,91 +356,34 @@ fn Transact() -> impl IntoView {
                                     <h2 class = "font-bold text-3xl">"Credit/Debit"</h2>
                                     <ActionForm action=update_action>
 
-                                       <div class="flex items-center text-center px-10 py-10">
+                                            {items.into_iter().map(|fields| view!{
+                                                <div class="flex items-center text-center px-10 py-10">
+                                                <label class="block mb-2 font-medium">{fields.title.to_string()}</label>
 
-                                       <label class="block mb-2 font-medium">{items.get(0).unwrap().title.to_string()}</label>
+                                                <br/>
 
-                                       <div class="flex gap-4">
+                                                <div class="flex gap-4">
+                                                <input
+                                                name = "acc_ids[]"
+                                                type = "hidden"
+                                                value = fields.id
+                                                />
 
-                                       <input
-                                       type="hidden"
-                                       name="id_one"
-                                       value=items.get(0).unwrap().id
-                                       />
+                                                <input
+                                                class = "shadow appearance-none border rounded py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                                name = "balance_add_cents[]"
+                                                type="number"
+                                                placeholder = "0"/>
 
-                                       <input
-                                       class = "shadow appearance-none border rounded py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                                       type="number"
-                                       name="balance_add_cents_one"
-                                       value=0
-                                       />
+                                                <input
+                                                class = "shadow appearance-none border rounded py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                                name = "balance_remove_cents[]"
+                                                type="number"
+                                                placeholder = "0"/>
+                                                </div>
+                                            </div>
 
-                                       <input
-                                       class = "shadow appearance-none border rounded py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                                       type="number"
-                                       name="balance_remove_cents_one"
-                                       value=0
-                                       />
-                                       </div>
-                                       </div>
-
-                                       <div class="flex items-center text-center px-10 py-10">
-                                       <label>{items.get(1).unwrap().title.to_string()}</label>
-
-                                       <br/>
-
-                                       <div class="flex gap-4">
-                                       <input
-                                       type="hidden"
-                                       name="id_two"
-                                       value=items.get(1).unwrap().id
-                                       />
-
-                                       <input
-                                       class = "shadow appearance-none border rounded py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                                       type="number"
-                                       name="balance_add_cents_two"
-                                       value=0
-                                       />
-
-                                       <input
-                                       class = "shadow appearance-none border rounded py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                                       type="number"
-                                       name="balance_remove_cents_two"
-                                       value=0
-                                       />
-
-                                       </div>
-                                       </div>
-
-                                       <div class="flex items-center text-center px-10 py-10">
-                                       <label class="block mb-2 font-medium">{items.get(2).unwrap().title.to_string()}</label>
-
-                                       <br/>
-
-                                       <div class="flex gap-4">
-                                       <input
-                                       type="hidden"
-                                       name="id_three"
-                                       value=items.get(2).unwrap().id
-                                       />
-
-                                       <input
-                                       class = "shadow appearance-none border rounded py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                                       type="number"
-                                       name="balance_add_cents_three"
-                                       value=0
-                                       />
-
-                                       <input
-                                       class = "shadow appearance-none border rounded py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                                       type="number"
-                                       name="balance_remove_cents_three"
-                                       value=0
-                                       />
-
-                                       </div>
-                                       </div>
+                                            }).collect_view()}
 
                                        <button class="mt-3 rounded bg-purple-900 px-2 py-2 font-bold text-white hover:bg-blue-400" type="submit">"Submit"</button>
 
@@ -458,16 +401,9 @@ fn Transact() -> impl IntoView {
                                                }.into_view()
                                            }
                                            Some(Ok(val)) => {
-                                               if val == TransactionResult::BALANCEMISMATCH {
-                                                   view! {
-                                                       <div><p>"Your debits do not equal your credits!"</p></div>
-                                                   }.into_view()
-                                               }
-                                               else {
-                                                   view! {
-                                                       <div><p>"Updated successfully"</p></div>
-                                                   }.into_view()
-                                               }
+                                               view! {
+                                                   <div><p></p></div>
+                                               }.into_view()
                                            }
                                        }
                                    }
@@ -491,6 +427,7 @@ fn Transact() -> impl IntoView {
         </Suspense>
     }
 }
+
 
 #[component]
 #[cfg(feature = "ssr")]

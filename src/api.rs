@@ -108,45 +108,27 @@ pub async fn add_account(title: String) -> Result<(), ServerFnError> {
 
 #[cfg(feature = "ssr")]
 #[server]
-pub async fn transact(
-    id_one: u32,
-    balance_add_cents_one: i64,
-    balance_remove_cents_one: i64,
-    id_two: u32,
-    balance_add_cents_two: i64,
-    balance_remove_cents_two: i64,
-    id_three: u32,
-    balance_add_cents_three: i64,
-    balance_remove_cents_three: i64,
-) -> Result<TransactionResult, ServerFnError> {
+pub async fn transact(acc_ids: Vec<String>, balance_add_cents: Vec<String>, balance_remove_cents: Vec<String>) -> Result<TransactionResult, ServerFnError> {
+
     pull_database_and_client_info!(pool, _session_id, user_id);
 
-    let balance_updates = [
-        BalanceUpdate {
-            id: id_one,
-            balance_diff_cents: balance_add_cents_one,
-        },
-        BalanceUpdate {
-            id: id_one,
-            balance_diff_cents: -balance_remove_cents_one,
-        },
-        BalanceUpdate {
-            id: id_two,
-            balance_diff_cents: balance_add_cents_two,
-        },
-        BalanceUpdate {
-            id: id_two,
-            balance_diff_cents: -balance_remove_cents_two,
-        },
-        BalanceUpdate {
-            id: id_three,
-            balance_diff_cents: balance_add_cents_three,
-        },
-        BalanceUpdate {
-            id: id_three,
-            balance_diff_cents: -balance_remove_cents_three,
-        },
-    ];
+    let mut balance_updates: Vec<BalanceUpdate> =  Vec::new();
+
+    for i in 0..acc_ids.len() {
+        let account_add: i64 = balance_add_cents.get(i).unwrap().parse().unwrap_or(0);
+
+        let account_remove: i64 = balance_remove_cents.get(i).unwrap().parse().unwrap_or(0);
+
+        let account_change = account_add - account_remove;
+        if account_change != 0 {
+            balance_updates.push(
+                BalanceUpdate {
+                    id: acc_ids.get(i).unwrap().parse().unwrap(),
+                    balance_diff_cents: account_change,
+                }
+            )
+        }
+    }
 
     let mut total_change = 0;
 
@@ -181,6 +163,7 @@ pub async fn transact(
         if update.balance_diff_cents == 0 {
             continue;
         }
+
         sqlx::query(
            "INSERT INTO partial_transactions (id, account_id, balance_diff_cents) VALUES (?, ?, ?)"
        )
