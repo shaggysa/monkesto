@@ -480,7 +480,7 @@ fn GeneralJournal() -> impl IntoView {
                                             <ul>
                                                 {packaged_transaction.children.iter().map(|partial_transaction| {
                                                     view! {
-                                                    <li>{partial_transaction.account_name.clone()} " : $" {partial_transaction.balance_diff_cents.abs()} " " {if partial_transaction.balance_diff_cents < 0 {"Dr".to_string()} else {"Cr".to_string()}} </li>
+                                                    <li>{partial_transaction.account_name.clone()} " : $" {partial_transaction.balance_diff_cents.abs()/100}"."{partial_transaction.balance_diff_cents.abs()%100} " " {if partial_transaction.balance_diff_cents < 0 {"Dr".to_string()} else {"Cr".to_string()}} </li>
                                                     }
                                                 }).collect_view()}
                                             </ul>
