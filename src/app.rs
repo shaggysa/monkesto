@@ -30,7 +30,7 @@ pub(crate) mod app {
         // Provides context that manages stylesheets, titles, meta tags, etc.
         provide_meta_context();
 
-        view! {improve view semantics with EitherOf
+        view! {
             // injects a stylesheet into the document <head>
             // id=leptos means cargo-leptos will hot-reload this stylesheet
             <Stylesheet id="leptos" href="/pkg/prototype.css"/>

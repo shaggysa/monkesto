@@ -46,7 +46,7 @@ async fn main() {
             sequence_number INT NOT NULL,
             event_type INT NOT NULL,
             payload JSONB NOT NULL,
-            created_at TIMESTAMPZ NOT NULL DEFAULT now()
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now()
             )",
     )
     .execute(&pool)
@@ -60,7 +60,7 @@ async fn main() {
                 sequence_number INT NOT NULL,
                 event_type INT NOT NULL,
                 payload JSONB NOT NULL,
-                created_at TIMESTAMPZ NOT NULL DEFAULT now()
+                created_at TIMESTAMPTZ NOT NULL DEFAULT now()
                 )",
     )
     .execute(&pool)
