@@ -8,12 +8,25 @@ use super::event::{AggregateType, EventType};
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type", content = "data")]
 pub enum UserEvent {
-    Created { username: String, password: String },
-    UsernameUpdate { username: String },
-    PasswordUpdate { password: String },
-    Login { session_id: String },
-    Logout { session_id: String },
-    AddAccount { id: Uuid },
+    Created {
+        username: String,
+        hashed_password: String,
+    },
+    UsernameUpdated {
+        username: String,
+    },
+    PasswordUpdated {
+        hashed_password: String,
+    },
+    LoggedIn {
+        session_id: String,
+    },
+    LoggedOut {
+        session_id: String,
+    },
+    AddedAccount {
+        id: Uuid,
+    },
     Deleted,
 }
 
@@ -53,7 +66,7 @@ struct UserState {
     id: Uuid,
     authenticated_sessions: std::collections::HashSet<String>,
     username: String,
-    password: String,
+    hashed_password: String,
     accounts: std::collections::HashSet<Uuid>,
     deleted: bool,
 }
@@ -73,15 +86,24 @@ impl UserState {
 
     pub async fn apply(&mut self, event: UserEvent) {
         match event {
-            UserEvent::Created { username, password } => {
+            UserEvent::Created {
+                username,
+                hashed_password: password,
+            } => {
                 self.username = username;
-                self.password = password;
+                self.hashed_password = password;
             }
-            UserEvent::AddAccount { id } => _ = self.accounts.insert(id),
-            UserEvent::UsernameUpdate { username } => self.username = username,
-            UserEvent::PasswordUpdate { password } => self.password = password,
-            UserEvent::Login { session_id } => _ = self.authenticated_sessions.insert(session_id),
-            UserEvent::Logout { session_id } => _ = self.authenticated_sessions.remove(&session_id),
+            UserEvent::AddedAccount { id } => _ = self.accounts.insert(id),
+            UserEvent::UsernameUpdated { username } => self.username = username,
+            UserEvent::PasswordUpdated {
+                hashed_password: password,
+            } => self.hashed_password = password,
+            UserEvent::LoggedIn { session_id } => {
+                _ = self.authenticated_sessions.insert(session_id)
+            }
+            UserEvent::LoggedOut { session_id } => {
+                _ = self.authenticated_sessions.remove(&session_id)
+            }
             UserEvent::Deleted => self.deleted = true,
         }
     }

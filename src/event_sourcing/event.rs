@@ -16,18 +16,18 @@ pub enum AggregateType {
 pub enum EventType {
     // User events (1-99)
     UserCreated = 1,
-    UsernameUpdate = 2,
-    UserPasswordUpdate = 3,
-    UserLogin = 4,
-    UserLogout = 5,
-    UserAddAccount = 6,
+    UsernameUpdated = 2,
+    UserPasswordUpdated = 3,
+    UserLoggedIn = 4,
+    UserLoggedOut = 5,
+    UserAddedAccount = 6,
     UserDeleted = 7,
 
     // Account events (100-199)
     AccountCreated = 100,
-    AccountAddTenant = 101,
-    AccountUpdateTenant = 102,
-    AccountRemoveTenant = 103,
+    AccountAddedTenant = 101,
+    AccountUpdatedTenant = 102,
+    AccountRemovedTenant = 103,
     AccountBalanceUpdated = 104,
     AccountDeleted = 105,
 
@@ -39,11 +39,11 @@ impl EventType {
     pub fn from_user_event(user_event: &UserEvent) -> Self {
         match user_event {
             UserEvent::Created { .. } => Self::UserCreated,
-            UserEvent::UsernameUpdate { .. } => Self::UsernameUpdate,
-            UserEvent::PasswordUpdate { .. } => Self::UserPasswordUpdate,
-            UserEvent::Login { .. } => Self::UserLogin,
-            UserEvent::Logout { .. } => Self::UserLogout,
-            UserEvent::AddAccount { .. } => Self::UserAddAccount,
+            UserEvent::UsernameUpdated { .. } => Self::UsernameUpdated,
+            UserEvent::PasswordUpdated { .. } => Self::UserPasswordUpdated,
+            UserEvent::LoggedIn { .. } => Self::UserLoggedIn,
+            UserEvent::LoggedOut { .. } => Self::UserLoggedOut,
+            UserEvent::AddedAccount { .. } => Self::UserAddedAccount,
             UserEvent::Deleted => Self::UserDeleted,
         }
     }
@@ -51,9 +51,9 @@ impl EventType {
     pub fn from_account_event(account_event: &AccountEvent) -> Self {
         match account_event {
             AccountEvent::Created { .. } => Self::AccountCreated,
-            AccountEvent::AddTenant { .. } => Self::AccountAddTenant,
-            AccountEvent::UpdateTenant { .. } => Self::AccountUpdateTenant,
-            AccountEvent::RemoveTenant { .. } => Self::AccountRemoveTenant,
+            AccountEvent::AddedTenant { .. } => Self::AccountAddedTenant,
+            AccountEvent::UpdateTenant { .. } => Self::AccountUpdatedTenant,
+            AccountEvent::RemoveTenant { .. } => Self::AccountRemovedTenant,
             AccountEvent::BalanceUpdated { .. } => Self::AccountBalanceUpdated,
             AccountEvent::Deleted => Self::AccountDeleted,
         }

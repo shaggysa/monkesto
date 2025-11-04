@@ -17,9 +17,8 @@ pub enum AccountEvent {
     Created {
         owner_id: Uuid,
         name: String,
-        starting_balance: i64,
     },
-    AddTenant {
+    AddedTenant {
         shared_user_id: Uuid,
         permissions: Permissions,
     },
@@ -31,7 +30,7 @@ pub enum AccountEvent {
         shared_user_id: Uuid,
     },
     BalanceUpdated {
-        amount: i64,
+        changed_by: i64,
     },
     Deleted,
 }
@@ -91,19 +90,15 @@ impl AccountState {
 
     pub fn apply(&mut self, event: AccountEvent) {
         match event {
-            AccountEvent::Created {
-                owner_id,
-                name,
-                starting_balance,
-            } => {
+            AccountEvent::Created { owner_id, name } => {
                 self.owner_id = owner_id;
                 self.name = name;
-                self.balance = starting_balance;
+                self.balance = 0;
             }
 
-            AccountEvent::BalanceUpdated { amount } => self.balance += amount,
+            AccountEvent::BalanceUpdated { changed_by: amount } => self.balance += amount,
 
-            AccountEvent::AddTenant {
+            AccountEvent::AddedTenant {
                 shared_user_id,
                 permissions,
             } => _ = self.tenants.insert(shared_user_id, permissions),
