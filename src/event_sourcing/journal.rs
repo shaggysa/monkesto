@@ -4,17 +4,27 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-#[derive(Serialize, Deserialize)]
-#[serde(tag = "type", content = "data")]
-pub enum AccountEvent {
-    Created { journal_id: Uuid, name: String },
-
-    BalanceUpdated { changed_by: i64 },
-
-    Deleted,
+#[derive(Serialize, Deserialize, Hash)]
+pub enum Permissions {
+    Read,
+    Write,
+    Share,
+    Delete,
 }
 
-impl AccountEvent {
+#[derive(Serialize, Deserialize)]
+pub struct BalanceUpdate {
+    account_id: Uuid,
+    changed_by: i64,
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum JournalEvent {
+    Created { id: Uuid },
+    AddedEntry { updates: Vec<BalanceUpdate> },
+    Deleted,
+}
+impl JournalEvent {
     pub async fn push_db(&self, uuid: Uuid, pool: &PgPool) -> Result<i64, ServerFnError> {
         let payload = match serde_json::to_value(self) {
             Ok(s) => s,
@@ -33,8 +43,8 @@ impl AccountEvent {
             "#,
         )
         .bind(uuid)
-        .bind(AggregateType::Account)
-        .bind(EventType::from_account_event(self))
+        .bind(AggregateType::Journal)
+        .bind(EventType::from_journal_event(self))
         .bind(payload)
         .fetch_one(pool)
         .await
@@ -46,37 +56,30 @@ impl AccountEvent {
 }
 
 #[derive(Default)]
-struct AccountState {
+pub struct JournalState {
     id: Uuid,
-    balance: i64,
-    name: String,
-    journal_id: Uuid,
+    transations: Vec<Vec<BalanceUpdate>>,
     deleted: bool,
 }
 
-impl AccountState {
-    pub fn from_events(id: Uuid, events: Vec<AccountEvent>) -> Self {
+impl JournalState {
+    pub fn from_events(id: Uuid, events: Vec<JournalEvent>) -> Self {
         let mut aggregate = Self {
             id,
             ..Default::default()
         };
+
         for event in events {
             aggregate.apply(event);
         }
         aggregate
     }
 
-    pub fn apply(&mut self, event: AccountEvent) {
+    pub fn apply(&mut self, event: JournalEvent) {
         match event {
-            AccountEvent::Created { journal_id, name } => {
-                self.journal_id = journal_id;
-                self.name = name;
-                self.balance = 0;
-            }
-
-            AccountEvent::BalanceUpdated { changed_by: amount } => self.balance += amount,
-
-            AccountEvent::Deleted => self.deleted = true,
+            JournalEvent::Created { id } => self.id = id,
+            JournalEvent::AddedEntry { updates } => self.transations.push(updates),
+            JournalEvent::Deleted => self.deleted = true,
         }
     }
 }

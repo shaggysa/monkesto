@@ -1,6 +1,7 @@
 use leptos::prelude::ServerFnError;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use std::collections::HashSet;
 use uuid::Uuid;
 
 use super::event::{AggregateType, EventType};
@@ -24,7 +25,19 @@ pub enum UserEvent {
     LoggedOut {
         session_id: String,
     },
-    AddedAccount {
+    CreatedJournal {
+        id: Uuid,
+    },
+    InvitedToJournal {
+        id: Uuid,
+    },
+    AcceptedJournalInvite {
+        id: Uuid,
+    },
+    DeclinedJournalInvite {
+        id: Uuid,
+    },
+    RemovedFromJournal {
         id: Uuid,
     },
     Deleted,
@@ -62,13 +75,15 @@ impl UserEvent {
 }
 
 #[derive(Default)]
-struct UserState {
-    id: Uuid,
-    authenticated_sessions: std::collections::HashSet<String>,
-    username: String,
-    hashed_password: String,
-    accounts: std::collections::HashSet<Uuid>,
-    deleted: bool,
+pub struct UserState {
+    pub id: Uuid,
+    pub authenticated_sessions: std::collections::HashSet<String>,
+    pub username: String,
+    pub hashed_password: String,
+    pub pending_journal_invites: HashSet<Uuid>,
+    pub accepted_journal_invites: HashSet<Uuid>,
+    pub owned_journals: HashSet<Uuid>,
+    pub deleted: bool,
 }
 
 impl UserState {
@@ -93,7 +108,6 @@ impl UserState {
                 self.username = username;
                 self.hashed_password = password;
             }
-            UserEvent::AddedAccount { id } => _ = self.accounts.insert(id),
             UserEvent::UsernameUpdated { username } => self.username = username,
             UserEvent::PasswordUpdated {
                 hashed_password: password,
@@ -104,6 +118,15 @@ impl UserState {
             UserEvent::LoggedOut { session_id } => {
                 _ = self.authenticated_sessions.remove(&session_id)
             }
+            UserEvent::CreatedJournal { id } => _ = self.owned_journals.insert(id),
+            UserEvent::InvitedToJournal { id } => _ = self.pending_journal_invites.insert(id),
+            UserEvent::DeclinedJournalInvite { id } => _ = self.pending_journal_invites.remove(&id),
+            UserEvent::AcceptedJournalInvite { id } => {
+                if self.pending_journal_invites.remove(&id) {
+                    _ = self.accepted_journal_invites.insert(id);
+                }
+            }
+            UserEvent::RemovedFromJournal { id } => _ = self.accepted_journal_invites.remove(&id),
             UserEvent::Deleted => self.deleted = true,
         }
     }

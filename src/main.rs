@@ -6,6 +6,9 @@ mod app;
 mod api;
 
 #[cfg(feature = "ssr")]
+mod event_sourcing;
+
+#[cfg(feature = "ssr")]
 #[tokio::main]
 async fn main() {
     use app::*;
@@ -73,6 +76,14 @@ async fn main() {
     // run our app with hyper
     // `axum::Server` is a re-export of `hyper::Server`
     log!("listening on http://{}", &addr);
+    log!(
+        "json payload: {}",
+        serde_json::to_value(event_sourcing::user::UserEvent::Created {
+            username: "user".to_string(),
+            hashed_password: "pw".to_string()
+        })
+        .unwrap()
+    );
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app.into_make_service())
         .await
