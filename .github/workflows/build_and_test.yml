@@ -32,7 +32,7 @@ jobs:
       run: cargo install --locked cargo-leptos
       
     - name: Build
-      run: cargo leptos build --verbose  
+      run: cargo leptos build --release 
       
     - name: Run tests
       run: cargo test --verbose
