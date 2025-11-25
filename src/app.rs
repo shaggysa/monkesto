@@ -4,6 +4,7 @@ use crate::event_sourcing::journal::Permissions;
 use crate::main_api::return_types::*;
 use crate::main_api::web_api;
 use crate::main_api::web_api::CreateJournal;
+use crate::main_api::web_api::get_accounts;
 //use chrono::DateTime;
 use leptos::prelude::*;
 use leptos_meta::{MetaTags, Stylesheet, Title, provide_meta_context};
@@ -51,7 +52,7 @@ pub fn App() -> impl IntoView {
                 <head>
                     <Routes fallback=|| "Page not found.".into_view()>
                         <Route path=StaticSegment("") view=HomePage/>
-                        //<Route path=StaticSegment("/transact") view=Transact/>
+                        <Route path=StaticSegment("/transact") view=Transact/>
                         //<Route path=StaticSegment("/journal") view=GeneralJournal/>
                         <Route path=StaticSegment("/login") view=ClientLogin/>
                         <Route path=StaticSegment("/signup") view=ClientSignUp/>
@@ -383,117 +384,114 @@ fn HomePage() -> impl IntoView {
     }
 }
 
-/*
 #[component]
 fn Transact() -> impl IntoView {
-    use leptos::either::{Either, EitherOf8};
+    use leptos::either::{Either, EitherOf5};
     use web_api::{Transact, get_associated_journals, get_user_id_from_session};
     let user_id_resource =
         Resource::new(|| (), |_| async move { get_user_id_from_session().await });
+
+    let journals_resource = Resource::new(
+        || (),
+        move |_| async move { get_associated_journals(user_id_resource.await).await },
+    );
+
+    let accounts_resource = Resource::new(
+        || (),
+        move |_| async move { get_accounts(user_id_resource.await).await },
+    );
 
     let update_action = ServerAction::<Transact>::new();
 
     view! {
         <Suspense>
-            {move || {
-                match user_id_resource.get() {
-                    None => EitherOf8::A(view! {<p>"Unable to fetch user id"</p>}),
+            {move | | Suspend::new(async move {
+                let user_id = match user_id_resource.await {
+                    Ok(s) => s,
+                    Err(_) => return EitherOf5::A(view! {<meta http-equiv="refresh" content="0; url=/login"/>})
+                };
 
-                    Some(Err(_)) => EitherOf8::B(view! {<meta http-equiv="refresh" content="0; url=/login"/>}),
+                let journals = match journals_resource.await {
+                    Ok(s) => s,
+                    Err(e) => return EitherOf5::B(view! {<p>"An error occured while fetching journals: "{e.to_string()}</p>})
+                };
 
-                    Some(Ok(user_id)) => {
-                        let journals_resource = Resource::new(|| (), move |_| async move {get_associated_journals(user_id).await});
+                if journals.selected.is_none() {
+                    return EitherOf5::C(view! {<TopBar journals=journals user_id=user_id/> <h1 class="font-bold text-4xl">"please select a journal"</h1>})
+                }
 
-                        match journals_resource.get() {
-                            None => EitherOf8::C(view! {<p>"Unable to fetch journals"</p>}),
+                let accounts = match accounts_resource.await {
+                    Ok(s) => s,
+                    Err(e) => return EitherOf5::D(view! {<p>"An error occured while fetching accounts: "{e.to_string()}</p>})
+                };
 
-                            Some(Err(e)) => EitherOf8::D(view! {<p>"An error occured while fetching journals: " {e.to_string()}</p>}),
+                EitherOf5::E(view! {
+                    <TopBar journals=journals.clone() user_id=user_id/>
+                    <h1 class="font-bold text-4xl">"Transact"</h1>
+                    <h2 class="font-bold text-2xl">"Credits/Debits"</h2>
+                    <ActionForm action=update_action>
+                        <input
+                        name="user_id"
+                        type="hidden"
+                        value=user_id.to_string()
+                        />
 
-                            Some(Ok(journals)) => {
-                                let accounts_resource = Resource::new(|| (), move |_| async move {web_api::get_accounts(user_id).await});
+                        <input
+                        name="journal_id"
+                        type="hidden"
+                        value=journals.selected.expect("the accounts resource should fail if this value is none").get_id().to_string()
+                        />
 
-                                match accounts_resource.get() {
-                                    None => EitherOf8::E(view! {<p>"Unable to fetch accounts"</p>}),
+                        {
+                            accounts.into_iter().map(|account| view! {
+                                <div class="flex items-center text-center px-10 py-10">
+                                    <label class="block mb-2 font-medium">{account.name.to_string()}</label>
+                                    <br/>
 
-                                    Some(Err(e)) => {if let Some(KnownErrors::InvalidJournal) = KnownErrors::parse_error(e.clone()) {
-                                        EitherOf8::F(view! {<p>"Please select a journal!"</p>})} else {
-                                            EitherOf8::G(view! {<p>"An error occured while fetching accounts: " {e.to_string()}</p>})
-                                        }
-                                    },
-
-                                    Some(Ok(accounts)) => EitherOf8::H(view! {
-                                        <TopBar journals=journals.clone() user_id=user_id/>
-                                        <h1 class="font-bold text-4xl">"Transact"</h1>
-                                        <ActionForm action=update_action>
+                                    <div class="flex gap-4">
+                                        <input
+                                        name="account_names[]"
+                                        type="hidden"
+                                        value=account.name.to_string()
+                                        />
 
                                         <input
-                                            name="user_id"
-                                            type="hidden"
-                                            value=user_id.to_string()
-                                            />
+                                        class="shadow appearance-none border rounded py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                        name="balance_add_cents[]"
+                                        type="number"
+                                        placeholder=0
+                                        />
 
-                                            <input
-                                            name="journal_id"
-                                            type="hidden"
-                                            value=journals.selected.expect("fetching the accounts resource should fail if this value is none").get_id().to_string()
-                                            />
+                                        <input
+                                        class="shadow appearance-none border rounded py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                        name="balance_remove_cents[]"
+                                        type="number"
+                                        placeholder=0
+                                        />
 
-                                            {
-                                                accounts.into_iter().map(|account| view! {
-                                                    <div class="flex items-center text-center px-10 py-10">
-                                                        <label class="block mb-2 font-medium">{account.name.to_string()}</label>
-                                                        <br/>
-                                                        <div class="flex gap-4">
-                                                            <input
-                                                            name="account_names[]"
-                                                            type="hidden"
-                                                            value=account.name.to_string()
-                                                            />
+                                    </div>
 
-                                                            <input
-                                                            class="shadow appearance-none border rounded py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                                                            name="balance_add_cents[]"
-                                                            type="number"
-                                                            placeholder="0"
-                                                            />
+                                </div>
+                            }).collect_view()
+                        }
+                        <button class="mt-3 rounded bg-purple-900 px-2 py-2 font-bold text-white hover:bg-blue-400" type="submit">"Submit"</button>
+                        <br/>
 
-                                                            <input
-                                                            class="shadow appearance-none border rounded py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                                                            name="balance_remove_cents[]"
-                                                            type="number"
-                                                            placeholder="0"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                }).collect_view()
-                                            }
-
-                                        <button class="mt-3 rounded bg-purple-900 px-2 py-2 font-bold text-white hover:bg-blue-400" type="submit">"Submit"</button>
-                                        <br/>
-
-                                        {
-                                            if let Some(Err(e)) = update_action.value().get() {
-                                                Either::Left(view!{
-                                                    <p>"An error occured while sumbitting your transaction: " {e.to_string()}</p>
-                                                })
-                                            } else {
-                                                Either::Right(view! {""})
-                                            }
-                                        }
-
-                                        </ActionForm>
-                                    })
-
-                                }
+                        {
+                            if let Some(Err(e)) = update_action.value().get() {
+                                Either::Left(view! {<p>"An error occured: "{e.to_string()}</p>})
+                            } else {
+                                Either::Right(view! {""})
                             }
                         }
-                    }
-                }
-            }}
+
+                    </ActionForm>
+                })
+            })}
         </Suspense>
     }
 }
-
+/*
 #[component]
 fn GeneralJournal() -> impl IntoView {
     use crate::main_api::web_api::{

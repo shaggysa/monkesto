@@ -548,23 +548,9 @@ pub async fn transact(
     let mut total_balance_change: i64 = 0;
 
     for i in 0..balance_add_cents.len() {
-        let add_amt = match balance_add_cents[i].parse::<i64>() {
-            Ok(s) => s,
-            Err(_) => {
-                return Err(ServerFnError::ServerError(
-                    KnownErrors::InvalidInput.to_string(),
-                ));
-            }
-        };
+        let add_amt = balance_add_cents[i].parse::<i64>().unwrap_or(0);
 
-        let remove_amt = match balance_remove_cents[i].parse::<i64>() {
-            Ok(s) => s,
-            Err(_) => {
-                return Err(ServerFnError::ServerError(
-                    KnownErrors::InvalidInput.to_string(),
-                ));
-            }
-        };
+        let remove_amt = balance_remove_cents[i].parse::<i64>().unwrap_or(0);
 
         let account_sum = add_amt - remove_amt;
 
