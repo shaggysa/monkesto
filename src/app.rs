@@ -1,11 +1,8 @@
-//use std::time::{Duration, UNIX_EPOCH};
-
 use crate::event_sourcing::journal::Permissions;
 use crate::main_api::return_types::*;
 use crate::main_api::web_api;
 use crate::main_api::web_api::CreateJournal;
 use crate::main_api::web_api::get_accounts;
-//use chrono::DateTime;
 use leptos::prelude::*;
 use leptos_meta::{MetaTags, Stylesheet, Title, provide_meta_context};
 use leptos_router::{
@@ -42,7 +39,6 @@ pub fn App() -> impl IntoView {
         // id=leptos means cargo-leptos will hot-reload this stylesheet
         <Stylesheet id="leptos" href="/pkg/prototype.css"/>
 
-        // sets the document title
         <Title text="Double-book accounting"/>
 
         // content for this welcome page
@@ -53,9 +49,10 @@ pub fn App() -> impl IntoView {
                     <Routes fallback=|| "Page not found.".into_view()>
                         <Route path=StaticSegment("") view=HomePage/>
                         <Route path=StaticSegment("/transact") view=Transact/>
-                        //<Route path=StaticSegment("/journal") view=GeneralJournal/>
+                        <Route path=StaticSegment("/journal") view=GeneralJournal/>
                         <Route path=StaticSegment("/login") view=ClientLogin/>
                         <Route path=StaticSegment("/signup") view=ClientSignUp/>
+                        //<Route path=StaticSegment("/invites") view=Invites/>
                     </Routes>
                 </head>
             </main>
@@ -491,81 +488,80 @@ fn Transact() -> impl IntoView {
         </Suspense>
     }
 }
-/*
+
 #[component]
 fn GeneralJournal() -> impl IntoView {
     use crate::main_api::web_api::{
         get_associated_journals, get_transactions, get_user_id_from_session,
     };
-    use leptos::either::EitherOf8;
+    use leptos::either::EitherOf5;
 
     let user_id_resource =
         Resource::new(|| (), |_| async move { get_user_id_from_session().await });
 
+    let journals_resource = Resource::new(
+        || (),
+        move |_| async move { get_associated_journals(user_id_resource.await).await },
+    );
+
+    let transactions_resource = Resource::new(
+        || (),
+        move |_| async move { get_transactions(user_id_resource.await, journals_resource.await).await },
+    );
+
     view! {
-
         <Suspense>
-            {move || {
-                match user_id_resource.get() {
-                    None => EitherOf8::A(view! {<p>"Unable to fetch user id"</p>}),
+            {move | | Suspend::new(async move {
+                let user_id = match user_id_resource.await {
+                    Ok(s) => s,
+                    Err(_) => return EitherOf5::A(view! {<meta http-equiv="refresh" content="0; url=/login"/>})
+                };
 
-                    Some(Err(_)) => EitherOf8::B(view! {<meta http-equiv="refresh" content="0; url=/login"/>}),
+                let journals = match journals_resource.await {
+                    Ok(s) => s,
+                    Err(e) => return EitherOf5::B(view! {<p>"An error occured while fetching journals: "{e.to_string()}</p>})
+                };
 
-                    Some(Ok(user_id)) => {
-                        let journals_resource = Resource::new(|| (), move |_| async move {get_associated_journals(user_id).await});
-                        match journals_resource.get() {
-                            None => EitherOf8::C(view! {<p>"Unable to fetch journals"</p>}),
-
-                            Some(Err(e)) => EitherOf8::D(view! {<p>"An error occured while fetching journals: "{e.to_string()}</p>}),
-
-                            Some(Ok(journals)) => {
-                                if let Some(selected_journal) = &journals.selected {
-                                    let selected = selected_journal.get_id();
-                                    let transactions_resource = Resource::new(|| (), move |_| async move {get_transactions(user_id, selected).await});
-                                    match transactions_resource.get() {
-                                        None => EitherOf8::E(view! {<p>"Unable to fetch transactions"</p>}),
-
-                                        Some(Err(e)) => EitherOf8::F(view! {<p>"An error occured while fetching transactions: "{e.to_string()}</p>}),
-
-                                        Some(Ok(transactions)) => {
-                                            EitherOf8::G(view! {
-                                                <TopBar journals=journals.clone() user_id=user_id/>
-                                                <div class="flex flex-col items-center text-center px-10 py-10">
-                                                    <h1 class="font-bold text-4xl">"General Journal"</h1>
-                                                    <ul>
-                                                        {
-                                                            transactions.into_iter().map(|transaction| view! {
-                                                                <div class="flex flex-col items-center text-center px-10 py-10">
-                                                                    <li>
-                                                                        <h2 class="font-bold text-xl">{DateTime::<chrono::Utc>::from(UNIX_EPOCH.checked_add(Duration::from_secs(transaction.timestamp as u64)).unwrap_or(UNIX_EPOCH)).to_string()}":"</h2>
-                                                                        <br/>
-                                                                        <ul>
-                                                                            {
-                                                                                transaction.transaction.updates.into_iter().map(|update| view! {
-                                                                                    <li>
-                                                                                    {update.account_name} " : $" {update.changed_by.abs()/100} "." {update.changed_by.abs()%100} " " {if update.changed_by < 0 {"Dr".to_string()} else {"Cr".to_string()}}
-                                                                                    </li>
-                                                                                }).collect_view()
-                                                                            }
-                                                                        </ul>
-                                                                    </li>
-                                                                </div>
-                                                            }).collect_view()
-                                                        }
-                                                    </ul>
-                                                </div>
-                                            })
-                                        }
-                                    }
-                                } else {
-                                    EitherOf8::H(view! {<p>"Please select a journal!"</p>})
-                                }
-                            }
-                        }
-                    }
+                if journals.selected.is_none() {
+                    return EitherOf5::C(view! {
+                        <TopBar journals=journals user_id=user_id/>
+                        <h1 class="font-bold text-4xl">"please select a journal"</h1>
+                    });
                 }
-            }}
+
+                let transactions = match transactions_resource.await {
+                    Ok(s) => s,
+                    Err(e) => return EitherOf5::D(view! {<p>"An error occued while fetching transactions: "{e.to_string()}</p>})
+                };
+
+                EitherOf5::E(view! {
+                    <TopBar journals=journals user_id=user_id/>
+                    <div class="flex flex-col items-center text-center px-10 py-10">
+                        <h1 class="font-bold text-4xl">"General Journal"</h1>
+                        <ul>
+                            {
+                                transactions.into_iter().map(|transaction| view! {
+                                    <div class="flex flex-col items-center text-center px-10 py-10">
+                                        <li>
+                                            <h2 class="font-bold text-xl">{transaction.timestamp.to_string()}":"</h2>
+                                            <br/>
+                                            <ul>
+                                                {
+                                                    transaction.transaction.updates.into_iter().map(|update| view! {
+                                                        <li>
+                                                            {update.account_name} " : $" {update.changed_by.abs()/100} "." {update.changed_by.abs() % 100} " " {if update.changed_by < 0 {String::from("Dr")} else {String::from("Cr")}}
+                                                        </li>
+                                                    }).collect_view()
+                                                }
+                                            </ul>
+                                        </li>
+                                    </div>
+                                }).collect_view()
+                            }
+                        </ul>
+                    </div>
+                })
+            })}
         </Suspense>
     }
 }
-*/

@@ -1,3 +1,4 @@
+use chrono::Utc;
 use leptos::prelude::ServerFnError;
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
@@ -103,5 +104,5 @@ pub struct Journals {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct TransactionWithTimeStamp {
     pub transaction: Transaction,
-    pub timestamp: i64,
+    pub timestamp: chrono::DateTime<Utc>,
 }

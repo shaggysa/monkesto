@@ -1,6 +1,7 @@
 use super::extensions;
 use super::return_types::*;
 use crate::event_sourcing;
+use chrono::Utc;
 use event_sourcing::event::{AggregateType, DomainEvent, EventType};
 use event_sourcing::journal::{
     BalanceUpdate, JournalEvent, JournalState, Permissions, Transaction,
@@ -155,12 +156,7 @@ pub async fn select_journal(user_id: String, journal_id: String) -> Result<(), S
     if !user_state.owned_journals.contains(&journal_id) {
         let journal = user_state.accepted_journal_invites.get(&journal_id);
 
-        if journal.is_none()
-            || !journal
-                .expect("already checked that the journal isn't none")
-                .tenant_permissions
-                .contains(Permissions::READ)
-        {
+        if journal.is_some_and(|j| j.tenant_permissions.contains(Permissions::READ)) {
             return Err(ServerFnError::ServerError(
                 KnownErrors::PermissionError {
                     required_permissions: Permissions::READ,
@@ -414,12 +410,7 @@ pub async fn get_accounts(
     if !user_state.owned_journals.contains(&journal_id) {
         let journal_perms = user_state.accepted_journal_invites.get(&journal_id);
 
-        if journal_perms.is_none()
-            || !journal_perms
-                .expect("already check that journal_perms isn't none")
-                .tenant_permissions
-                .contains(Permissions::READ)
-        {
+        if journal_perms.is_some_and(|j| j.tenant_permissions.contains(Permissions::READ)) {
             return Err(ServerFnError::ServerError(
                 KnownErrors::PermissionError {
                     required_permissions: Permissions::READ,
@@ -586,10 +577,18 @@ pub async fn transact(
 
 pub async fn get_transactions(
     user_id: Result<Uuid, ServerFnError>,
-    journal_id: Result<Uuid, ServerFnError>,
+    journals: Result<Journals, ServerFnError>,
 ) -> Result<Vec<TransactionWithTimeStamp>, ServerFnError> {
     let user_id = user_id?;
-    let journal_id = journal_id?;
+    let journal_id = match journals?.selected {
+        Some(s) => s.get_id(),
+        None => {
+            return Err(ServerFnError::ServerError(
+                KnownErrors::InvalidJournal.to_string(),
+            ));
+        }
+    };
+
     use EventType::*;
 
     let mut bundled_transactions = Vec::new();
@@ -609,12 +608,7 @@ pub async fn get_transactions(
 
     if !user_state.owned_journals.contains(&journal_id) {
         let shared_journal = user_state.accepted_journal_invites.get(&journal_id);
-        if shared_journal.is_none()
-            || !shared_journal
-                .expect("already checked that the shared journal isn't none")
-                .tenant_permissions
-                .contains(Permissions::READ)
-        {
+        if shared_journal.is_some_and(|j| j.tenant_permissions.contains(Permissions::READ)) {
             return Err(ServerFnError::ServerError(
                 KnownErrors::PermissionError {
                     required_permissions: Permissions::READ,
@@ -624,11 +618,11 @@ pub async fn get_transactions(
         }
     }
 
-    let raw_transactions: Vec<(sqlx::types::JsonValue, i64)> = sqlx::query_as(
+    let raw_transactions: Vec<(sqlx::types::JsonValue, chrono::DateTime<Utc>)> = sqlx::query_as(
         r#"
         SELECT payload, created_at FROM events
         WHERE aggregate_id = $1 AND aggregate_type = $2 AND event_type = $3
-        SORT BY created_at ASC
+        ORDER BY created_at ASC
         "#,
     )
     .bind(journal_id)
