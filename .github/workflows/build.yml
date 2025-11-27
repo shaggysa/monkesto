@@ -58,6 +58,9 @@ jobs:
       - name: Compose build
         run: docker compose build app
 
+      - name: Tag image
+        run: docker tag leptos-prototyping-app:latest double-book:latest
+
       - name: Save image to tarball
         run: docker image save double-book:latest -o double-book.tar
 
