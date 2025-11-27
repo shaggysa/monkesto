@@ -299,7 +299,7 @@ fn AddAccount(user_id: Uuid, journal_id: Uuid) -> impl IntoView {
 }
 
 #[component]
-fn AccountList(accounts: Vec<Account>, journals: Journals, user_id: Uuid) -> impl IntoView {
+fn AccountList(mut accounts: Vec<Account>, journals: Journals, user_id: Uuid) -> impl IntoView {
     use leptos::either::EitherOf4;
 
     view! {
@@ -309,6 +309,7 @@ fn AccountList(accounts: Vec<Account>, journals: Journals, user_id: Uuid) -> imp
             <div class="mx-auto flex min-w-full flex-col items-center">
                 <ul>
                     {
+                        accounts.sort_unstable_by_key(|account| account.name.clone());
                         accounts.into_iter().map(|account| view! {
                             <li class="px-1 py-1 font-bold text-2xl">
                                 {account.name}"    " {format!("${}.{:02} {}", account.balance.abs()/100, account.balance.abs() % 100, if account.balance < 0 {"Dr"} else {"Cr"})}
@@ -446,7 +447,7 @@ fn Transact() -> impl IntoView {
                     return EitherOf5::C(view! {<TopBar journals=journals user_id=user_id/> <h1 class="font-bold text-4xl">"please select a journal"</h1>})
                 }
 
-                let accounts = match accounts_resource.await {
+                let mut accounts = match accounts_resource.await {
                     Ok(s) => s,
                     Err(e) => return EitherOf5::D(view! {<p>"An error occured while fetching accounts: "{e.to_string()}</p>})
                 };
@@ -477,6 +478,8 @@ fn Transact() -> impl IntoView {
                                 },
                                 _ => None
                             };
+
+                            accounts.sort_unstable_by_key(|account| account.name.clone());
 
                             accounts.into_iter().map(|account| view! {
                                 <div class="flex items-center text-center px-10 py-10">
@@ -575,7 +578,7 @@ fn GeneralJournal() -> impl IntoView {
                     });
                 }
 
-                let transactions = match transactions_resource.await {
+                let mut transactions = match transactions_resource.await {
                     Ok(s) => s,
                     Err(e) => return EitherOf5::D(view! {<p>"An error occured while fetching transactions: "{e.to_string()}</p>})
                 };
@@ -586,6 +589,7 @@ fn GeneralJournal() -> impl IntoView {
                         <h1 class="font-bold text-4xl">"General Journal"</h1>
                         <ul>
                             {
+                                transactions.sort_unstable_by_key(|transaction| std::cmp::Reverse(transaction.timestamp));
                                 transactions.into_iter().map(|transaction| view! {
                                     <div class="flex flex-col items-center text-center px-10 py-10">
                                         <li>
