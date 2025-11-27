@@ -301,9 +301,28 @@ fn AddAccount(user_id: Uuid, journal_id: Uuid) -> impl IntoView {
 #[component]
 fn AccountList(mut accounts: Vec<Account>, journals: Journals, user_id: Uuid) -> impl IntoView {
     use leptos::either::EitherOf4;
+    let create_journal = ServerAction::<web_api::CreateJournal>::new();
 
     view! {
         <div class="mx-auto flex min-w-full flex-col items-center px-4 py-4">
+            <ActionForm action=create_journal>
+                <input
+                    type="hidden"
+                    name="user_id"
+                    value=user_id.to_string()
+                    />
+                    <input
+                    class="shadow appearance-none border rounded py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    name="journal_name"
+                    type="text"
+                    placeholder="journal name"
+                        />
+                    <button
+                    type="submit"
+                    class="mt-3 rounded bg-purple-900 px-2 py-2 font-bold text-white hover:bg-blue-400"
+                    >"Create Journal!"</button>
+            </ActionForm>
+
             <h1 class="font-bold text-4xl">"Accounts"</h1>
         </div>
             <div class="mx-auto flex min-w-full flex-col items-center">
@@ -403,6 +422,7 @@ fn HomePage() -> impl IntoView {
                     };
                     EitherOf5::E(view! {
                         <TopBar journals=journals.clone() user_id=user_id/>
+
                         <AccountList accounts=accounts journals=journals user_id=user_id/>
                     })
                 })
