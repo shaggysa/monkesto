@@ -64,11 +64,14 @@ jobs:
       - name: Save image to tarball
         run: docker image save double-book:${{ steps.ver.outputs.VERSION }} -o double-book-${{ steps.ver.outputs.VERSION }}.tar
 
+      - name: Compress tarball
+        run: gzip double-book-${{ steps.ver.outputs.VERSION }}.tar
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: double-book-${{ steps.ver.outputs.VERSION }}
-          path: double-book-${{ steps.ver.outputs.VERSION }}.tar
+          path: double-book-${{ steps.ver.outputs.VERSION }}.tar.gz
 
   test:
     runs-on: ubuntu-latest
