@@ -29,7 +29,6 @@ jobs:
           echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
 
       - name: Tag image with release version
-        id: ver
         run: |
           docker tag double-book:latest ghcr.io/${{ github.repository_owner }}/double-book:${{ steps.ver.outputs.VERSION }}
 
