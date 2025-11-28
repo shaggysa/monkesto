@@ -16,6 +16,11 @@ curl -sSL -o docker-compose.deploy.yml https://raw.githubusercontent.com/shaggys
 docker compose -f docker-compose.deploy.yml up
 ```
 
+### Builds are currently unstable, and database resets will almost certainly be necessary at some point. You can do this with:
+```
+docker compose -f docker-compose.deploy.yml down -v
+```
+
 # Or build from source:
 
 ## Install postgres, and create a database for the server:

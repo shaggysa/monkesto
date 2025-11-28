@@ -50,13 +50,8 @@ jobs:
         id: ver
         run: echo "VERSION=build-${{ github.run_number }}" >> $GITHUB_OUTPUT
 
-      - name: Install Docker Compose
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y docker-compose-v2
-
       - name: Compose build
-        run: docker build -f Dockerfile -t double-book:latest .
+        run: docker buildx build --platform linux/amd64,linux/arm64 -f Dockerfile -t double-book:latest --push .
 
       - name: Save image to tarball
         run: docker image save double-book:latest -o double-book.tar

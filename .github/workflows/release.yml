@@ -21,7 +21,7 @@ jobs:
           password: ${{ secrets.GHCR_PAT }}
 
       - name: Build image
-        run: docker build -f Dockerfile -t double-book:latest .
+        run: docker buildx build --platform linux/amd64,linux/arm64 -f Dockerfile -t double-book:latest --push .
 
       - name: Generate version number
         id: ver
