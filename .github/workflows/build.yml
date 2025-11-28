@@ -24,11 +24,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
 
-      - name: Setup buildx
-        run: docker buildx create --use --driver docker-container
-
       - name: Build amd64 image
-        run: docker buildx build --platform linux/amd64 -t $IMAGE_NAME:${VERSION}-amd64 --push .
+        run: docker build -f Dockerfile -t $IMAGE_NAME:${VERSION}-amd64 --push .
 
   build-arm64:
     runs-on: ubuntu-24.04-arm
@@ -43,11 +40,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
 
-      - name: Setup buildx
-        run: docker buildx create --use --driver docker-container
-
       - name: Build arm64 image
-        run: docker buildx build --platform linux/arm64 -t $IMAGE_NAME:${VERSION}-arm64 --push .
+        run: docker build -f Dockerfile -t $IMAGE_NAME:${VERSION}-arm64 --push .
 
   merge_manifest:
     runs-on: ubuntu-latest
