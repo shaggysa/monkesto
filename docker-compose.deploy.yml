@@ -1,0 +1,27 @@
+services:
+  db:
+    image: postgres:16
+
+    env_file:
+      - .env
+
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  app:
+    image: ghcr.io/shaggysa/double-book:latest
+
+    ports:
+      - "8080:8080"
+
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+
+    depends_on:
+      - db
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  db-data:

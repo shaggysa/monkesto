@@ -1,10 +1,22 @@
 # To run the server:
 
-## Clone the repo:
+## Create a .env file with postgres credentials:
 ```
-git clone https://github.com/shaggysa/leptos-prototyping.git
-cd leptos-prototyping
+touch .env
+
+echo "POSTGRES_USER=username" >> .env
+echo "POSTGRES_PASSWORD=password" >> .env
+echo "POSTGRES_DB=dbname" >> .env
 ```
+
+## Start the server container (requires docker):
+```
+curl -sSL -o docker-compose.yml https://raw.githubusercontent.com/shaggysa/leptos-prototyping/main/docker-compose.deploy.yml
+
+docker compose -f docker-compose.deploy.yml up
+```
+
+# Or build from source:
 
 ## Install postgres, and create a database for the server:
 ```
@@ -15,24 +27,30 @@ sudo -iu postgres psql
 ```
 CREATE ROLE username WITH LOGIN PASSWORD 'password';
 
-CREATE DATABASE databasename WITH OWNER username;
+CREATE DATABASE dbname WITH OWNER username;
 
 \q
 ```
 
-## For the server to recognize the database, you need to put the info in a .env file:
+## Clone the repo:
+```
+git clone https://github.com/shaggysa/leptos-prototyping.git
+cd leptos-prototyping
+```
 
+## Create a .env file with postgres credentials:
 ```
 touch .env
 
-echo "DATABASE_URL=postgres://username:password@localhost:5432/databasename" >> .env
+echo "POSTGRES_USER=username" >> .env
+echo "POSTGRES_PASSWORD=password" >> .env
+echo "POSTGRES_DB=dbname" >> .env
 ```
 
-Finally, start the server:
+## Start the server:
 ```
-cargo leptos watch
+cargo leptos watch 
 ```
-
 
 ## If you do not have postgres installed already:
 

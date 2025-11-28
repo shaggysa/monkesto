@@ -21,7 +21,7 @@ jobs:
           password: ${{ secrets.GHCR_PAT }}
 
       - name: Build image
-        run: COMPOSE_PROJECT_NAME=double-book docker compose build app
+        run: docker build -f Dockerfile -t double-book:latest .
 
       - name: Generate version number
         id: ver
@@ -30,11 +30,11 @@ jobs:
 
       - name: Tag image with release version
         run: |
-          docker tag double-book-app:latest ghcr.io/${{ github.repository_owner }}/double-book:${{ steps.ver.outputs.VERSION }}
+          docker tag double-book:latest ghcr.io/${{ github.repository_owner }}/double-book:${{ steps.ver.outputs.VERSION }}
 
       - name: Tag image as latest
         run: |
-          docker tag double-book-app:latest ghcr.io/${{ github.repository_owner }}/double-book:latest
+          docker tag double-book:latest ghcr.io/${{ github.repository_owner }}/double-book:latest
 
       - name: Push tags to GHCR
         run: |
