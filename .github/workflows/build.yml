@@ -45,6 +45,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Buildx
+        run: |
+          docker buildx create --use --drive docker-container
+          docker builx inspect --bootstrap
+
       - name: Build image
         run: docker buildx build --platform linux/amd64 --output type=oci,dest=amd64.tar -t $IMAGE_NAME:${VERSION}-amd64 .
 
@@ -59,6 +64,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup buildx
+        run: |
+          docker buildx create --use --drive docker-container
+          docker builx inspect --bootstrap
 
       - name: Build image
         run: docker buildx build --platform linux/arm64 --output type=oci,dest=arm64.tar -t $IMAGE_NAME:${VERSION}-arm64 .
@@ -98,6 +108,11 @@ jobs:
           docker manifest create $IMAGE_NAME:${VERSION} \
             --amend $IMAGE_NAME:${VERSION}-amd64 \
             --amend $IMAGE_NAME:${VERSION}-arm64
+
+      - name: Setup Buildx
+        run: |
+          docker buildx create --use --drive docker-container
+          docker builx inspect --bootstrap
 
       - name: Save image as artifact
         run: |
