@@ -48,7 +48,7 @@ jobs:
       - name: Setup Buildx
         run: |
           docker buildx create --use --driver docker-container
-          docker builx inspect --bootstrap
+          docker buildx inspect --bootstrap
 
       - name: Build image
         run: docker buildx build --platform linux/amd64 --output type=oci,dest=amd64.tar -t $IMAGE_NAME:${VERSION}-amd64 .
@@ -68,7 +68,7 @@ jobs:
       - name: Setup buildx
         run: |
           docker buildx create --use --driver docker-container
-          docker builx inspect --bootstrap
+          docker buildx inspect --bootstrap
 
       - name: Build image
         run: docker buildx build --platform linux/arm64 --output type=oci,dest=arm64.tar -t $IMAGE_NAME:${VERSION}-arm64 .
