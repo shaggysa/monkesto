@@ -1,12 +1,8 @@
 # Get started with a build env with Rust nightly
 FROM rustlang/rust:nightly-bookworm as builder
 
-# If you’re using stable, use this instead
-# FROM rust:1.88-bookworm as builder
-
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/usr/local/cargo/git \
-    cargo install cargo-leptos --locked --root /usr/local
+# install pre-built cargo-leptos binary
+RUN curl --proto '=https' --tlsv1.2 -LsSf https://github.com/leptos-rs/cargo-leptos/releases/download/v0.3.0/cargo-leptos-installer.sh | sh
 
 # Install required tools
 RUN apt-get update -y \
