@@ -12,7 +12,7 @@ env:
 
 jobs:
   clippy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
 
     steps:
       - uses: actions/checkout@v4
@@ -26,7 +26,7 @@ jobs:
         run: cargo clippy --features=ssr -- -D warnings
 
   format:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
 
     steps:
       - uses: actions/checkout@v4
@@ -86,6 +86,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Setup Buildx
+        run: |
+          docker buildx create --use --driver docker-container
+          docker buildx inspect --bootstrap
+
       - name: Download amd64 image
         uses: actions/download-artifact@v5
         with:
@@ -105,37 +110,25 @@ jobs:
 
       - name: Create multi-arch manifest
         run: |
-          docker manifest create $IMAGE_NAME:${VERSION} \
-            --amend $IMAGE_NAME:${VERSION}-amd64 \
-            --amend $IMAGE_NAME:${VERSION}-arm64
-
-      - name: Setup Buildx
-        run: |
-          docker buildx create --use --driver docker-container
-          docker builx inspect --bootstrap
-
-      - name: Save image as artifact
-        run: |
-          docker manifest inspect $IMAGE_NAME:${VERSION}
-
           docker buildx imagetools create \
             -t $IMAGE_NAME:${VERSION} \
             $IMAGE_NAME:${VERSION}-amd64 \
-            $IMAGE_NAME:${VERSION}-arm64 \
-            > /dev/null
+            $IMAGE_NAME:${VERSION}-arm64
 
-          docker buildx imagetools insped $IMAGE_NAME:${VERSION}
+          docker buildx imagetools inspect $IMAGE_NAME:${VERSION}
 
+      - name: Save image as artifact
+        run: |
           docker buildx imagetools create \
-            --output=type=docker,dest=$IMAGE_NAME:${VERSION}.tar \
+            --output=type=docker,dest=${IMAGE_NAME}_${VERSION}.tar \
             $IMAGE_NAME:${VERSION}-amd64 \
             $IMAGE_NAME:${VERSION}-arm64
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: $IMAGE_NAME:${VERSION}
-          path: $IMAGE_NAME:${VERSION}.tar
+          name: $IMAGE_NAME_${VERSION}
+          path: $IMAGE_NAME_${VERSION}.tar
 
       - name: Remove per-arch artifacts
         uses: geekyeggo/delete-artifact@v2
