@@ -505,6 +505,12 @@ pub async fn add_account(
 
     let pool = extensions::get_pool().await?;
 
+    if account_name.is_empty() {
+        return Err(ServerFnError::ServerError(
+            KnownErrors::InvalidInput.to_string()?,
+        ));
+    }
+
     let user_state = user::UserState::build(
         &user_id,
         vec![

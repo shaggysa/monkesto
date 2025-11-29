@@ -316,6 +316,7 @@ fn AccountList(mut accounts: Vec<Account>, journals: Journals, user_id: Uuid) ->
                     name="journal_name"
                     type="text"
                     placeholder="journal name"
+                    required
                         />
                     <button
                     type="submit"
@@ -407,6 +408,7 @@ fn HomePage() -> impl IntoView {
                                     class="shadow appearance-none border rounded py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                                     name="journal_name"
                                     type="text"
+                                    required
                                     placeholder="journal name"
                                         />
                                     <button
