@@ -287,7 +287,7 @@ fn AddAccount(user_id: Uuid, journal_id: Uuid) -> impl IntoView {
                         move || {
                             match add_account.value().get() {
                                 Some(Err(e)) => Either::Left(view! {
-                                    <p>"An error occured: " {e.to_string()}</p>
+                                    <p>"An error occured while creating the account: " {e.to_string()}</p>
                                 }),
                                 _ => Either::Right(view! {""})
                             }
@@ -300,7 +300,7 @@ fn AddAccount(user_id: Uuid, journal_id: Uuid) -> impl IntoView {
 
 #[component]
 fn AccountList(mut accounts: Vec<Account>, journals: Journals, user_id: Uuid) -> impl IntoView {
-    use leptos::either::EitherOf4;
+    use leptos::either::{Either, EitherOf4};
     let create_journal = ServerAction::<web_api::CreateJournal>::new();
 
     view! {
@@ -323,6 +323,17 @@ fn AccountList(mut accounts: Vec<Account>, journals: Journals, user_id: Uuid) ->
                     class="mt-3 rounded bg-purple-900 px-2 py-2 font-bold text-white hover:bg-blue-400"
                     >"Create Journal!"</button>
             </ActionForm>
+
+            {
+                move || {
+                    match create_journal.value().get() {
+                        Some(Err(e)) => Either::Left(view! {
+                            <p>"An error occured while creating the journal: " {e.to_string()}</p>
+                        }),
+                        _ => Either::Right(view! {""})
+                    }
+                }
+            }
 
             <h1 class="font-bold text-4xl">"Accounts"</h1>
         </div>

@@ -33,6 +33,12 @@ pub async fn create_account(
     let pool = extensions::get_pool().await?;
     let session_id = extensions::get_session_id().await?;
 
+    if username.trim().is_empty() {
+        return Err(ServerFnError::ServerError(
+            KnownErrors::InvalidInput.to_string()?,
+        ));
+    }
+
     if password != confirm_password {
         return Err(ServerFnError::ServerError(
             KnownErrors::SignupPasswordMismatch { username }.to_string()?,
@@ -115,6 +121,12 @@ pub async fn log_out(user_id: String) -> Result<(), ServerFnError> {
 pub async fn create_journal(journal_name: String, user_id: String) -> Result<(), ServerFnError> {
     let user_id = Uuid::try_parse(&user_id)?;
     let pool = extensions::get_pool().await?;
+
+    if journal_name.trim().is_empty() {
+        return Err(ServerFnError::ServerError(
+            KnownErrors::InvalidInput.to_string()?,
+        ));
+    }
 
     let journal_id = Uuid::new_v4();
 
@@ -505,7 +517,7 @@ pub async fn add_account(
 
     let pool = extensions::get_pool().await?;
 
-    if account_name.is_empty() {
+    if account_name.trim().is_empty() {
         return Err(ServerFnError::ServerError(
             KnownErrors::InvalidInput.to_string()?,
         ));
