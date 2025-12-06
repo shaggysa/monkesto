@@ -5,7 +5,7 @@ on:
     types: [published]
 
 env:
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/double-book
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/monkesto
   VERSION: ${{ github.ref_name }}
 
 jobs:
