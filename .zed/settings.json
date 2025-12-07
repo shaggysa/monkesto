@@ -3,7 +3,8 @@
     "rust-analyzer": {
       "initialization_options": {
         "check": {
-          "command": "clippy"
+          "command": "clippy",
+          "arguments": ["features=ssr"]
         },
 
         "diagnostics": {
