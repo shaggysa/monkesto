@@ -37,18 +37,17 @@ docker compose -f docker-compose.deploy.yml down -v
 
 # Or build from source:
 
-## Install postgres, and create a database for the server:
-```
-sudo -iu postgres psql
-```
+## Create a new docker database container:
 
-## Inside the postgres terminal:
-```
-CREATE ROLE username WITH LOGIN PASSWORD 'password';
-
-CREATE DATABASE dbname WITH OWNER username;
-
-\q
+```sh
+docker create \
+  -e POSTGRES_PASSWORD='monkesto' \
+  -e POSTGRES_USER='monkesto' \
+  -e POSTGRES_DB='monkesto' \
+  --name monkesto-db \
+  -p 5432:5432 \
+  postgres
+docker start monkesto-db
 ```
 
 ## Clone the repo:
@@ -61,10 +60,10 @@ cd monkesto
 ```
 touch .env
 
-echo "POSTGRES_USER=username" >> .env
-echo "POSTGRES_PASSWORD=password" >> .env
+echo "POSTGRES_USER=monkesto" >> .env
+echo "POSTGRES_PASSWORD=monkesto" >> .env
 echo "DATABASE_HOST=localhost" >> .env
-echo "POSTGRES_DB=dbname" >> .env
+echo "POSTGRES_DB=monkesto" >> .env
 ```
 
 ## Start the server:
