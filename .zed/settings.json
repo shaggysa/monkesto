@@ -16,13 +16,27 @@
       "initialization_options": {
         "check": {
           "command": "clippy",
-          "arguments": ["--features=ssr"]
+          "arguments": ["--features=ssr", "--offline"]
         },
         "diagnostics": {
-          "experimental": "true"
+          "experimental": "true",
+          "disabled": ["unresolved-import", "macro-error"]
         },
         "cargo": {
-          "features": ["ssr"]
+          "features": ["ssr"],
+          "buildScripts": {
+            "enable": false
+          },
+          "offline": true
+        },
+        "procMacro": {
+          "enable": true,
+          "ignored": {
+            "sqlx": ["Type"]
+          }
+        },
+        "rustfmt": {
+          "overrideCommand": ["leptosfmt", "--stdin", "--rustfmt"]
         }
       }
     }
