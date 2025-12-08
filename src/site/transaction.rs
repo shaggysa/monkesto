@@ -1,13 +1,13 @@
-use crate::main_api::return_types::*;
-use crate::main_api::web_api;
-use crate::main_api::web_api::get_accounts;
-use crate::nav::TopBar;
+use super::nav::TopBar;
+use crate::api::main_api;
+use crate::api::main_api::get_accounts;
+use crate::api::return_types::*;
 use leptos::prelude::*;
 
 #[component]
 pub fn Transact() -> impl IntoView {
     use leptos::either::{Either, EitherOf5};
-    use web_api::{Transact, get_associated_journals, get_user_id_from_session};
+    use main_api::{Transact, get_associated_journals, get_user_id_from_session};
     let user_id_resource =
         Resource::new(|| (), |_| async move { get_user_id_from_session().await });
 
@@ -30,6 +30,7 @@ pub fn Transact() -> impl IntoView {
                     Ok(s) => s,
                     Err(_) => {
                         return EitherOf5::A(
+
                             view! { <meta http-equiv="refresh" content="0; url=/login" /> },
                         );
                     }

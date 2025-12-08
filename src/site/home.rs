@@ -1,7 +1,7 @@
-use crate::account::AccountList;
-use crate::main_api::web_api;
-use crate::main_api::web_api::CreateJournal;
-use crate::nav::TopBar;
+use super::account::AccountList;
+use super::nav::TopBar;
+use crate::api::main_api;
+use crate::api::main_api::CreateJournal;
 use leptos::prelude::*;
 
 #[component]
@@ -10,17 +10,17 @@ pub fn HomePage() -> impl IntoView {
 
     let user_id_resource = Resource::new(
         move || (),
-        |_| async move { web_api::get_user_id_from_session().await },
+        |_| async move { main_api::get_user_id_from_session().await },
     );
 
     let journals_resource = Resource::new(
         move || (),
-        move |_| async move { web_api::get_associated_journals(user_id_resource.await).await },
+        move |_| async move { main_api::get_associated_journals(user_id_resource.await).await },
     );
 
     let accounts_resource = Resource::new(
         move || (),
-        move |_| async move { web_api::get_accounts(user_id_resource.await).await },
+        move |_| async move { main_api::get_accounts(user_id_resource.await).await },
     );
 
     let create_journal = ServerAction::<CreateJournal>::new();

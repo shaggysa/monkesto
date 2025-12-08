@@ -1,13 +1,13 @@
+use crate::api::main_api;
+use crate::api::return_types::*;
 use crate::event_sourcing::journal::Permissions;
-use crate::main_api::return_types::*;
-use crate::main_api::web_api;
 use leptos::prelude::*;
 use uuid::Uuid;
 
 #[component]
 fn AddAccount(user_id: Uuid, journal_id: Uuid) -> impl IntoView {
     use leptos::either::Either;
-    let add_account = ServerAction::<web_api::AddAccount>::new();
+    let add_account = ServerAction::<main_api::AddAccount>::new();
     view! {
         <div class="flex flex-col items-center text-center px-10 py-10">
             <h1>"Create a new account"</h1>
@@ -52,7 +52,7 @@ fn AddAccount(user_id: Uuid, journal_id: Uuid) -> impl IntoView {
 #[component]
 pub fn AccountList(mut accounts: Vec<Account>, journals: Journals, user_id: Uuid) -> impl IntoView {
     use leptos::either::{Either, EitherOf4};
-    let create_journal = ServerAction::<web_api::CreateJournal>::new();
+    let create_journal = ServerAction::<main_api::CreateJournal>::new();
 
     view! {
         <div class="mx-auto flex min-w-full flex-col items-center px-4 py-4">

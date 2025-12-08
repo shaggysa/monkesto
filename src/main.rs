@@ -1,28 +1,21 @@
 #[allow(dead_code)]
-mod app;
+mod site;
 
 #[allow(dead_code)]
 mod event_sourcing;
 
 #[allow(dead_code)]
-mod main_api;
-
-mod account;
-mod auth;
-mod home;
-mod journal;
-mod nav;
-mod transaction;
+mod api;
 
 #[cfg(feature = "ssr")]
 #[tokio::main]
 async fn main() {
-    use app::*;
     use axum::Router;
     use dotenvy::dotenv;
     use leptos::logging::log;
     use leptos::prelude::*;
     use leptos_axum::{LeptosRoutes, generate_route_list};
+    use site::app::*;
     use sqlx::postgres::PgPoolOptions;
     use sqlx::{Pool, Postgres};
     use std::env;

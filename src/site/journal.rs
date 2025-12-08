@@ -1,10 +1,10 @@
+use super::nav::TopBar;
 use crate::event_sourcing::journal::Permissions;
-use crate::nav::TopBar;
 use leptos::prelude::*;
 
 #[component]
 pub fn GeneralJournal() -> impl IntoView {
-    use crate::main_api::web_api::{
+    use crate::api::main_api::{
         get_associated_journals, get_transactions, get_user_id_from_session,
     };
     use leptos::either::EitherOf5;
@@ -129,7 +129,7 @@ pub fn GeneralJournal() -> impl IntoView {
 
 #[component]
 pub fn JournalInvites() -> impl IntoView {
-    use crate::main_api::web_api::{
+    use crate::api::main_api::{
         InviteToJournal, RespondToJournalInvite, get_associated_journals, get_journal_invites,
         get_user_id_from_session,
     };

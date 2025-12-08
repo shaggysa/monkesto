@@ -5,7 +5,7 @@ use sqlx::{PgPool, query_scalar, types::JsonValue};
 use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
-use crate::{event_sourcing::journal::Permissions, main_api::return_types::KnownErrors};
+use crate::{api::return_types::KnownErrors, event_sourcing::journal::Permissions};
 
 use super::event::{AggregateType, DomainEvent, EventType};
 

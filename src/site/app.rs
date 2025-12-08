@@ -1,9 +1,9 @@
-use crate::auth::ClientLogin;
-use crate::auth::ClientSignUp;
-use crate::home::HomePage;
-use crate::journal::GeneralJournal;
-use crate::journal::JournalInvites;
-use crate::transaction::Transact;
+use super::auth::ClientLogin;
+use super::auth::ClientSignUp;
+use super::home::HomePage;
+use super::journal::GeneralJournal;
+use super::journal::JournalInvites;
+use super::transaction::Transact;
 use leptos::prelude::*;
 use leptos_meta::{MetaTags, Stylesheet, Title, provide_meta_context};
 use leptos_router::{

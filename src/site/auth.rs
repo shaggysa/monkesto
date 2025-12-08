@@ -1,9 +1,9 @@
-use crate::main_api::return_types::*;
+use crate::api::return_types::*;
 use leptos::prelude::*;
 
 #[component]
 pub fn ClientLogin() -> impl IntoView {
-    use crate::main_api::web_api::{Login, get_user_id_from_session};
+    use crate::api::main_api::{Login, get_user_id_from_session};
     use leptos::either::{Either, EitherOf3};
 
     let login = ServerAction::<Login>::new();
@@ -98,7 +98,7 @@ pub fn ClientLogin() -> impl IntoView {
 
 #[component]
 pub fn ClientSignUp() -> impl IntoView {
-    use crate::main_api::web_api::CreateAccount;
+    use crate::api::main_api::CreateAccount;
     use leptos::either::Either;
     let signup = ServerAction::<CreateAccount>::new();
 

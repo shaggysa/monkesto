@@ -1,6 +1,6 @@
 #[allow(dead_code)]
 #[cfg(feature = "ssr")]
-pub mod web_api;
+pub mod main_api;
 
 #[allow(dead_code)]
 #[cfg(feature = "ssr")]
