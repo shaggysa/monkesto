@@ -1,18 +1,28 @@
 {
+  "format_on_save": "on",
+  "languages": {
+    "Rust": {
+      "format_on_save": "on",
+      "formatter": {
+        "external": {
+          "command": "leptosfmt",
+          "arguments": ["--stdin"]
+        }
+      }
+    }
+  },
   "lsp": {
     "rust-analyzer": {
       "initialization_options": {
         "check": {
           "command": "clippy",
-          "arguments": ["features=ssr"]
+          "arguments": ["--features=ssr"]
         },
-
         "diagnostics": {
           "experimental": "true"
         },
-
         "cargo": {
-          "features": ["ssr"] // allows the linter to work with ssr dependant code
+          "features": ["ssr"]
         }
       }
     }
