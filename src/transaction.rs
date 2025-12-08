@@ -1,9 +1,8 @@
 use crate::main_api::return_types::*;
 use crate::main_api::web_api;
 use crate::main_api::web_api::get_accounts;
-use leptos::prelude::*;
 use crate::nav::TopBar;
-
+use leptos::prelude::*;
 
 #[component]
 pub fn Transact() -> impl IntoView {

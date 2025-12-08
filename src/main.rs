@@ -7,12 +7,12 @@ mod event_sourcing;
 #[allow(dead_code)]
 mod main_api;
 
-mod auth;
-mod nav;
-mod journal;
-mod transaction;
-mod home;
 mod account;
+mod auth;
+mod home;
+mod journal;
+mod nav;
+mod transaction;
 
 #[cfg(feature = "ssr")]
 #[tokio::main]

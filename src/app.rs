@@ -1,15 +1,15 @@
+use crate::auth::ClientLogin;
+use crate::auth::ClientSignUp;
+use crate::home::HomePage;
+use crate::journal::GeneralJournal;
+use crate::journal::JournalInvites;
+use crate::transaction::Transact;
 use leptos::prelude::*;
 use leptos_meta::{MetaTags, Stylesheet, Title, provide_meta_context};
 use leptos_router::{
     StaticSegment,
     components::{Route, Router, Routes},
 };
-use crate::auth::ClientLogin;
-use crate::auth::ClientSignUp;
-use crate::home::HomePage;
-use crate::transaction::Transact;
-use crate::journal::GeneralJournal;
-use crate::journal::JournalInvites;
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {

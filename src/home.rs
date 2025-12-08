@@ -1,8 +1,8 @@
+use crate::account::AccountList;
 use crate::main_api::web_api;
 use crate::main_api::web_api::CreateJournal;
-use leptos::prelude::*;
 use crate::nav::TopBar;
-use crate::account::AccountList;
+use leptos::prelude::*;
 
 #[component]
 pub fn HomePage() -> impl IntoView {

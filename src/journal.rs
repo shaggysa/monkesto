@@ -1,7 +1,6 @@
 use crate::event_sourcing::journal::Permissions;
-use leptos::prelude::*;
 use crate::nav::TopBar;
-
+use leptos::prelude::*;
 
 #[component]
 pub fn GeneralJournal() -> impl IntoView {

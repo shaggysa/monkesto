@@ -6,7 +6,7 @@
       "formatter": {
         "external": {
           "command": "leptosfmt",
-          "arguments": ["--stdin"]
+          "arguments": ["--rustfmt", "{buffer_path}"]
         }
       }
     }
