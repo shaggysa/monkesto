@@ -5,8 +5,8 @@
       "format_on_save": "on",
       "formatter": {
         "external": {
-          "command": "leptosfmt",
-          "arguments": ["--stdin", "--rustfmt"]
+          "command": "bash",
+          "arguments": [".zed/format.sh"]
         }
       }
     }
@@ -14,9 +14,6 @@
   "lsp": {
     "rust-analyzer": {
       "initialization_options": {
-        "rustfmt": {
-          "overrideCommand": ["leptosfmt", "--stdin", "--rustfmt"]
-        },
         "check": {
           "overrideCommand": ["cargo", "clippy", "--features=ssr"]
         }
