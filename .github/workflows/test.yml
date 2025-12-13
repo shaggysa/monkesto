@@ -2,6 +2,7 @@ name: Test
 
 on:
   push:
+    branches: ["main"]
   pull_request:
     branches: ["main"]
 
@@ -21,7 +22,7 @@ jobs:
         run: cargo clippy --features=ssr -- -D warnings
 
   format:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
 
     steps:
       - uses: actions/checkout@v4
@@ -37,7 +38,7 @@ jobs:
       - uses: cargo-bins/cargo-binstall@main
 
       - name: Setup leptosfmt
-        run: cargo binstall leptosfmt
+        run: cargo binstall leptosfmt --force
 
       - name: Run leptosfmt
         run: leptosfmt --check .
