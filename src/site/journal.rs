@@ -4,7 +4,7 @@ use crate::event_sourcing::journal::Permissions;
 use leptos::prelude::*;
 use uuid::Uuid;
 
-struct Journal {
+pub struct Journal {
     pub id: Uuid,
     pub name: String,
 }
@@ -13,11 +13,11 @@ fn journals() -> Vec<Journal> {
     use std::str::FromStr;
     vec![
         Journal {
-            id: Uuid::from_str("550e8400-e29b-41d4-a716-446655440000").unwrap(),
+            id: Uuid::from_str("550e8400-e29b-41d4-a716-446655440000").expect("Invalid UUID"),
             name: "Personal".to_string(),
         },
         Journal {
-            id: Uuid::from_str("550e8400-e29b-41d4-a716-446655440001").unwrap(),
+            id: Uuid::from_str("550e8400-e29b-41d4-a716-446655440001").expect("Invalid UUID"),
             name: "Business".to_string(),
         },
     ]
@@ -91,7 +91,7 @@ pub fn JournalDetail() -> impl IntoView {
     };
 
     view! {
-        <Layout page_title=journal_name() show_switch_link=true>
+        <Layout page_title=journal_name() show_switch_link=true journal_id=journal_id()>
             <a
                 href=format!("/journal/{}/transaction", journal_id())
                 class="block p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"

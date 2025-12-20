@@ -1,37 +1,27 @@
-mod general;
-mod transact;
-
-pub use general::GeneralJournal;
-pub use transact::Transact;
-
 use super::layout::Layout;
 use leptos::prelude::*;
 use leptos_router::hooks::use_params_map;
 use uuid::Uuid;
 
-struct Transaction {
+struct Person {
     pub id: Uuid,
-    pub description: String,
-    pub amount: String,
+    pub username: String,
 }
 
-fn transactions() -> Vec<Transaction> {
+fn people() -> Vec<Person> {
     use std::str::FromStr;
     vec![
-        Transaction {
-            id: Uuid::from_str("350e8400-e29b-41d4-a716-446655440000").expect("Invalid UUID"),
-            description: "Grocery Store Purchase".to_string(),
-            amount: "$45.67".to_string(),
+        Person {
+            id: Uuid::from_str("250e8400-e29b-41d4-a716-446655440000").expect("Invalid UUID"),
+            username: "johndoe".to_string(),
         },
-        Transaction {
-            id: Uuid::from_str("350e8400-e29b-41d4-a716-446655440001").expect("Invalid UUID"),
-            description: "Gas Station Fill-up".to_string(),
-            amount: "$32.14".to_string(),
+        Person {
+            id: Uuid::from_str("250e8400-e29b-41d4-a716-446655440001").expect("Invalid UUID"),
+            username: "janesmith".to_string(),
         },
-        Transaction {
-            id: Uuid::from_str("350e8400-e29b-41d4-a716-446655440002").expect("Invalid UUID"),
-            description: "Coffee Shop".to_string(),
-            amount: "$4.25".to_string(),
+        Person {
+            id: Uuid::from_str("250e8400-e29b-41d4-a716-446655440002").expect("Invalid UUID"),
+            username: "bobjohnson".to_string(),
         },
     ]
 }
@@ -51,7 +41,7 @@ fn journals() -> Vec<super::journal::Journal> {
 }
 
 #[component]
-pub fn TransactionListPage() -> impl IntoView {
+pub fn PeopleListPage() -> impl IntoView {
     let params = use_params_map();
     let journal_id = move || params.get().get("id").unwrap_or_default().to_string();
 
@@ -65,20 +55,17 @@ pub fn TransactionListPage() -> impl IntoView {
 
     view! {
         <Layout page_title=journal_name() show_switch_link=true journal_id=journal_id()>
-            {transactions()
+            {people()
                 .into_iter()
-                .map(|transaction| {
+                .map(|person| {
                     view! {
                         <a
-                            href=format!("/journal/{}/transaction/{}", journal_id(), transaction.id)
+                            href=format!("/journal/{}/person/{}", journal_id(), person.id)
                             class="block p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                         >
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                                {transaction.description}
+                                {person.username}
                             </h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">
-                                {transaction.amount}
-                            </p>
                         </a>
                     }
                 })
@@ -88,36 +75,18 @@ pub fn TransactionListPage() -> impl IntoView {
                 <form class="space-y-6">
                     <div>
                         <label
-                            for="transaction_description"
+                            for="username"
                             class="block text-sm/6 font-medium text-gray-900 dark:text-gray-100"
                         >
-                            "Create New Transaction"
+                            "Invite Person"
                         </label>
                         <div class="mt-2">
                             <input
-                                id="transaction_description"
+                                id="username"
                                 type="text"
-                                name="transaction_description"
+                                name="username"
                                 required
-                                placeholder="Transaction description"
-                                class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500"
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label
-                            for="transaction_amount"
-                            class="block text-sm/6 font-medium text-gray-900 dark:text-gray-100"
-                        >
-                            "Amount"
-                        </label>
-                        <div class="mt-2">
-                            <input
-                                id="transaction_amount"
-                                type="text"
-                                name="transaction_amount"
-                                required
-                                placeholder="$0.00"
+                                placeholder="Enter username to invite"
                                 class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500"
                             />
                         </div>
@@ -127,7 +96,7 @@ pub fn TransactionListPage() -> impl IntoView {
                             type="submit"
                             class="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:shadow-none dark:hover:bg-indigo-400 dark:focus-visible:outline-indigo-500"
                         >
-                            "Create Transaction"
+                            "Send Invite"
                         </button>
                     </div>
                 </form>

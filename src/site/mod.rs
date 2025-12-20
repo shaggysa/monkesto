@@ -5,4 +5,5 @@ mod home;
 mod journal;
 mod layout;
 mod nav;
+mod person;
 mod transaction;

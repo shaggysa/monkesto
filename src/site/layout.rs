@@ -4,6 +4,7 @@ use leptos::prelude::*;
 pub fn Layout(
     #[prop(optional)] page_title: Option<String>,
     #[prop(optional)] show_switch_link: bool,
+    #[prop(optional)] journal_id: Option<String>,
     children: Children,
 ) -> impl IntoView {
     view! {
@@ -22,9 +23,24 @@ pub fn Layout(
                             {if let Some(title) = page_title {
                                 view! {
                                     <div class="flex flex-col items-end justify-center">
-                                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            {title}
-                                        </span>
+                                        {if let Some(id) = journal_id.clone() {
+                                            view! {
+                                                <a
+                                                    href=format!("/journal/{}", id)
+                                                    class="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                                                >
+                                                    {title}
+                                                </a>
+                                            }
+                                                .into_any()
+                                        } else {
+                                            view! {
+                                                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                    {title}
+                                                </span>
+                                            }
+                                                .into_any()
+                                        }}
                                         {if show_switch_link {
                                             view! {
                                                 <a
