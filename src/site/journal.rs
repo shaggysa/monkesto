@@ -32,7 +32,7 @@ pub fn JournalList() -> impl IntoView {
                     .map(|journal| {
                         view! {
                             <a
-                                href=format!("/journal/{}", journal.id)
+                                href="/journal-detail"
                                 class="block mt-6 border border-gray-300 dark:border-gray-600 rounded-xl p-4 text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-gray-700 hover:border-blue-400 dark:hover:border-blue-500 transition-colors duration-200 text-center"
                             >
                                 <span class="text-xl font-semibold">{journal.name}</span>
@@ -71,6 +71,74 @@ pub fn JournalList() -> impl IntoView {
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+#[component]
+pub fn JournalDetail() -> impl IntoView {
+    let journal_name = "Personal";
+
+    view! {
+        <div class="min-h-full">
+            // Global Navigation Bar
+            <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex justify-between h-16">
+                        <div class="flex items-center">
+                            <img src="logo.svg" alt="Monkesto" class="h-8 w-auto" />
+                            <span class="ml-4 text-xl font-bold text-gray-900 dark:text-white">
+                                "Monkesto"
+                            </span>
+                        </div>
+                        <div class="flex flex-col items-end justify-center">
+                            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                {journal_name}
+                            </span>
+                            <a
+                                href="/journal"
+                                class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                            >
+                                "switch"
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            // Main Content
+            <div class="flex-1 p-6">
+                <div class="max-w-7xl mx-auto">
+                    <div class="flex flex-col gap-6 max-w-md mx-auto">
+                        <a
+                            href="/transaction"
+                            class="block p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        >
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                "Transactions"
+                            </h3>
+                        </a>
+
+                        <a
+                            href="/account"
+                            class="block p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        >
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                "Accounts"
+                            </h3>
+                        </a>
+
+                        <a
+                            href="/person"
+                            class="block p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        >
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                "People"
+                            </h3>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

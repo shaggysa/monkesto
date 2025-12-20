@@ -1,6 +1,7 @@
 use super::auth::ClientLogin;
 use super::auth::ClientSignUp;
 use super::home::HomePage;
+use super::journal::JournalDetail;
 use super::journal::JournalInvites;
 use super::journal::JournalList;
 use super::transaction::GeneralJournal;
@@ -54,6 +55,7 @@ pub fn App() -> impl IntoView {
                     <Route path=StaticSegment("/signup") view=ClientSignUp />
                     <Route path=StaticSegment("/invites") view=JournalInvites />
                     <Route path=StaticSegment("/journal") view=JournalList />
+                    <Route path=StaticSegment("/journal-detail") view=JournalDetail />
                 </Routes>
             </main>
         </Router>
