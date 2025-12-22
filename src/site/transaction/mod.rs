@@ -203,13 +203,187 @@ pub fn TransactionListPage() -> impl IntoView {
                 .collect_view()}
             <hr class="mt-8 mb-6 border-gray-300 dark:border-gray-600" />
             <div class="mt-10">
-                <div class="text-center p-8 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">
                         "Create New Transaction"
                     </h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                        "Transaction creation form will be implemented here"
-                    </p>
+                    <form class="space-y-6">
+                        // Entry 1
+                        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    "Account"
+                                </label>
+                                <select class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 dark:focus:border-indigo-400">
+                                    <option value="">"Select account..."</option>
+                                    <option value="cash">"Cash"</option>
+                                    <option value="checking">"Checking Account"</option>
+                                    <option value="savings">"Savings Account"</option>
+                                    <option value="groceries">"Groceries Expense"</option>
+                                    <option value="fuel">"Fuel Expense"</option>
+                                    <option value="coffee">"Coffee Expense"</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-4 gap-3">
+                                <div class="col-span-3">
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        "Amount"
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        placeholder="0.00"
+                                        class="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-indigo-500 focus:ring-indigo-500 dark:focus:border-indigo-400 text-right [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                                    />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        "Type"
+                                    </label>
+                                    <select class="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 dark:focus:border-indigo-400">
+                                        <option value="debit">"Dr"</option>
+                                        <option value="credit">"Cr"</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        // Entry 2
+                        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    "Account"
+                                </label>
+                                <select class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 dark:focus:border-indigo-400">
+                                    <option value="">"Select account..."</option>
+                                    <option value="cash">"Cash"</option>
+                                    <option value="checking">"Checking Account"</option>
+                                    <option value="savings">"Savings Account"</option>
+                                    <option value="groceries">"Groceries Expense"</option>
+                                    <option value="fuel">"Fuel Expense"</option>
+                                    <option value="coffee">"Coffee Expense"</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-4 gap-3">
+                                <div class="col-span-3">
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        "Amount"
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        placeholder="0.00"
+                                        class="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-indigo-500 focus:ring-indigo-500 dark:focus:border-indigo-400 text-right [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                                    />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        "Type"
+                                    </label>
+                                    <select class="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 dark:focus:border-indigo-400">
+                                        <option value="debit">"Dr"</option>
+                                        <option value="credit">"Cr"</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        // Entry 3
+                        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    "Account (Optional)"
+                                </label>
+                                <select class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 dark:focus:border-indigo-400">
+                                    <option value="">"Select account..."</option>
+                                    <option value="cash">"Cash"</option>
+                                    <option value="checking">"Checking Account"</option>
+                                    <option value="savings">"Savings Account"</option>
+                                    <option value="groceries">"Groceries Expense"</option>
+                                    <option value="fuel">"Fuel Expense"</option>
+                                    <option value="coffee">"Coffee Expense"</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-4 gap-3">
+                                <div class="col-span-3">
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        "Amount"
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        placeholder="0.00"
+                                        class="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-indigo-500 focus:ring-indigo-500 dark:focus:border-indigo-400 text-right [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                                    />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        "Type"
+                                    </label>
+                                    <select class="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 dark:focus:border-indigo-400">
+                                        <option value="debit">"Dr"</option>
+                                        <option value="credit">"Cr"</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        // Entry 4
+                        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    "Account (Optional)"
+                                </label>
+                                <select class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 dark:focus:border-indigo-400">
+                                    <option value="">"Select account..."</option>
+                                    <option value="cash">"Cash"</option>
+                                    <option value="checking">"Checking Account"</option>
+                                    <option value="savings">"Savings Account"</option>
+                                    <option value="groceries">"Groceries Expense"</option>
+                                    <option value="fuel">"Fuel Expense"</option>
+                                    <option value="coffee">"Coffee Expense"</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-4 gap-3">
+                                <div class="col-span-3">
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        "Amount"
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        placeholder="0.00"
+                                        class="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-indigo-500 focus:ring-indigo-500 dark:focus:border-indigo-400 text-right [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                                    />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        "Type"
+                                    </label>
+                                    <select class="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 dark:focus:border-indigo-400">
+                                        <option value="debit">"Dr"</option>
+                                        <option value="credit">"Cr"</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-600">
+                            <div class="text-sm text-gray-500 dark:text-gray-400">
+                                "Debits must equal credits"
+                            </div>
+                            <button
+                                type="submit"
+                                class="px-6 py-2 bg-indigo-600 text-white font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:bg-indigo-500 dark:hover:bg-indigo-400 dark:focus:ring-indigo-400 dark:ring-offset-gray-800"
+                            >
+                                "Create Transaction"
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </Layout>
