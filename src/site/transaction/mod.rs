@@ -9,10 +9,36 @@ use leptos::prelude::*;
 use leptos_router::hooks::use_params_map;
 use uuid::Uuid;
 
+#[derive(Debug, Clone)]
+enum EntryType {
+    Debit,
+    Credit,
+}
+
+#[derive(Debug, Clone)]
+struct Entry {
+    pub account: AccountItem,
+    pub amount: i64, // in cents
+    pub entry_type: EntryType,
+}
+
+#[derive(Debug, Clone)]
+struct AccountItem {
+    pub id: Uuid,
+    pub name: String,
+}
+
+#[derive(Debug, Clone)]
+struct Person {
+    pub id: Uuid,
+    pub username: String,
+}
+
+#[derive(Debug, Clone)]
 struct Transaction {
     pub id: Uuid,
-    pub description: String,
-    pub amount: String,
+    pub author: Person,
+    pub entries: Vec<Entry>,
 }
 
 fn transactions() -> Vec<Transaction> {
@@ -20,18 +46,84 @@ fn transactions() -> Vec<Transaction> {
     vec![
         Transaction {
             id: Uuid::from_str("350e8400-e29b-41d4-a716-446655440000").expect("Invalid UUID"),
-            description: "Grocery Store Purchase".to_string(),
-            amount: "$45.67".to_string(),
+            author: Person {
+                id: Uuid::from_str("250e8400-e29b-41d4-a716-446655440000").expect("Invalid UUID"),
+                username: "johndoe".to_string(),
+            },
+            entries: vec![
+                Entry {
+                    account: AccountItem {
+                        id: Uuid::from_str("450e8400-e29b-41d4-a716-446655440000")
+                            .expect("Invalid UUID"),
+                        name: "Cash".to_string(),
+                    },
+                    amount: 4567, // $45.67 in cents
+                    entry_type: EntryType::Credit,
+                },
+                Entry {
+                    account: AccountItem {
+                        id: Uuid::from_str("450e8400-e29b-41d4-a716-446655440002")
+                            .expect("Invalid UUID"),
+                        name: "Groceries Expense".to_string(),
+                    },
+                    amount: 4567, // $45.67 in cents
+                    entry_type: EntryType::Debit,
+                },
+            ],
         },
         Transaction {
             id: Uuid::from_str("350e8400-e29b-41d4-a716-446655440001").expect("Invalid UUID"),
-            description: "Gas Station Fill-up".to_string(),
-            amount: "$32.14".to_string(),
+            author: Person {
+                id: Uuid::from_str("250e8400-e29b-41d4-a716-446655440001").expect("Invalid UUID"),
+                username: "janesmith".to_string(),
+            },
+            entries: vec![
+                Entry {
+                    account: AccountItem {
+                        id: Uuid::from_str("450e8400-e29b-41d4-a716-446655440001")
+                            .expect("Invalid UUID"),
+                        name: "Checking Account".to_string(),
+                    },
+                    amount: 3214, // $32.14 in cents
+                    entry_type: EntryType::Credit,
+                },
+                Entry {
+                    account: AccountItem {
+                        id: Uuid::from_str("450e8400-e29b-41d4-a716-446655440003")
+                            .expect("Invalid UUID"),
+                        name: "Fuel Expense".to_string(),
+                    },
+                    amount: 3214, // $32.14 in cents
+                    entry_type: EntryType::Debit,
+                },
+            ],
         },
         Transaction {
             id: Uuid::from_str("350e8400-e29b-41d4-a716-446655440002").expect("Invalid UUID"),
-            description: "Coffee Shop".to_string(),
-            amount: "$4.25".to_string(),
+            author: Person {
+                id: Uuid::from_str("250e8400-e29b-41d4-a716-446655440002").expect("Invalid UUID"),
+                username: "bobjohnson".to_string(),
+            },
+            entries: vec![
+                Entry {
+                    account: AccountItem {
+                        id: Uuid::from_str("450e8400-e29b-41d4-a716-446655440000")
+                            .expect("Invalid UUID"),
+                        name: "Cash".to_string(),
+                    },
+                    amount: 425, // $4.25 in cents
+                    entry_type: EntryType::Credit,
+                },
+                Entry {
+                    account: AccountItem {
+                        id: Uuid::from_str("450e8400-e29b-41d4-a716-446655440004")
+                            .expect("Invalid UUID"),
+                        name: "Coffee Expense".to_string(),
+                    },
+                    amount: 425, // $4.25 in cents
+                    entry_type: EntryType::Debit,
+                },
+            ],
         },
     ]
 }
@@ -73,64 +165,52 @@ pub fn TransactionListPage() -> impl IntoView {
                             href=format!("/journal/{}/transaction/{}", journal_id(), transaction.id)
                             class="block p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                         >
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                                {transaction.description}
-                            </h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">
-                                {transaction.amount}
-                            </p>
+                            <div class="space-y-3">
+                                <div class="space-y-2">
+                                    {transaction
+                                        .entries
+                                        .iter()
+                                        .map(|entry| {
+                                            let entry_amount = format!(
+                                                "${}.{:02}",
+                                                entry.amount / 100,
+                                                entry.amount % 100,
+                                            );
+                                            let entry_type_str = match entry.entry_type {
+                                                EntryType::Debit => "Dr",
+                                                EntryType::Credit => "Cr",
+                                            };
+                                            view! {
+                                                <div class="flex justify-between items-center">
+                                                    <span class="text-base font-medium text-gray-900 dark:text-white">
+                                                        {entry.account.name.clone()}
+                                                    </span>
+                                                    <span class="text-base text-gray-700 dark:text-gray-300">
+                                                        {entry_amount} " " {entry_type_str}
+                                                    </span>
+                                                </div>
+                                            }
+                                        })
+                                        .collect_view()}
+                                </div>
+                                <div class="text-xs text-gray-400 dark:text-gray-500">
+                                    {transaction.author.username}
+                                </div>
+                            </div>
                         </a>
                     }
                 })
                 .collect_view()}
             <hr class="mt-8 mb-6 border-gray-300 dark:border-gray-600" />
             <div class="mt-10">
-                <form class="space-y-6">
-                    <div>
-                        <label
-                            for="transaction_description"
-                            class="block text-sm/6 font-medium text-gray-900 dark:text-gray-100"
-                        >
-                            "Create New Transaction"
-                        </label>
-                        <div class="mt-2">
-                            <input
-                                id="transaction_description"
-                                type="text"
-                                name="transaction_description"
-                                required
-                                placeholder="Transaction description"
-                                class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500"
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label
-                            for="transaction_amount"
-                            class="block text-sm/6 font-medium text-gray-900 dark:text-gray-100"
-                        >
-                            "Amount"
-                        </label>
-                        <div class="mt-2">
-                            <input
-                                id="transaction_amount"
-                                type="text"
-                                name="transaction_amount"
-                                required
-                                placeholder="$0.00"
-                                class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500"
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <button
-                            type="submit"
-                            class="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:shadow-none dark:hover:bg-indigo-400 dark:focus-visible:outline-indigo-500"
-                        >
-                            "Create Transaction"
-                        </button>
-                    </div>
-                </form>
+                <div class="text-center p-8 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                        "Create New Transaction"
+                    </h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        "Transaction creation form will be implemented here"
+                    </p>
+                </div>
             </div>
         </Layout>
     }
