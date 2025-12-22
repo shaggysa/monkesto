@@ -8,7 +8,6 @@ use uuid::Uuid;
 
 #[component]
 fn AddAccount(user_id: Uuid, journal_id: Uuid) -> impl IntoView {
-    use leptos::either::Either;
     let add_account = ServerAction::<main_api::AddAccount>::new();
     view! {
         <div class="flex flex-col items-center text-center px-10 py-10">
@@ -35,15 +34,13 @@ fn AddAccount(user_id: Uuid, journal_id: Uuid) -> impl IntoView {
             {move || {
                 match add_account.value().get() {
                     Some(Err(e)) => {
-                        Either::Left(
-                            view! {
-                                <p>
-                                    "An error occured while creating the account: " {e.to_string()}
-                                </p>
-                            },
-                        )
+
+                        view! {
+                            <p>"An error occurred while creating the account: " {e.to_string()}</p>
+                        }
+                            .into_any()
                     }
-                    _ => Either::Right(view! { "" }),
+                    _ => view! { "" }.into_any(),
                 }
             }}
 
@@ -53,7 +50,6 @@ fn AddAccount(user_id: Uuid, journal_id: Uuid) -> impl IntoView {
 
 #[component]
 pub fn AccountList(mut accounts: Vec<Account>, journals: Journals, user_id: Uuid) -> impl IntoView {
-    use leptos::either::{Either, EitherOf4};
     let create_journal = ServerAction::<main_api::CreateJournal>::new();
 
     view! {
@@ -78,15 +74,16 @@ pub fn AccountList(mut accounts: Vec<Account>, journals: Journals, user_id: Uuid
             {move || {
                 match create_journal.value().get() {
                     Some(Err(e)) => {
-                        Either::Left(
-                            view! {
-                                <p>
-                                    "An error occured while creating the journal: " {e.to_string()}
-                                </p>
-                            },
-                        )
+                        view! {
+                            <p>"An error occurred while creating the journal: " {e.to_string()}</p>
+                        }
+                            .into_any()
                     }
-                    _ => Either::Right(view! { "" }),
+                    _ => {
+
+                        view! { "" }
+                            .into_any()
+                    }
                 }
             }}
 
@@ -120,18 +117,18 @@ pub fn AccountList(mut accounts: Vec<Account>, journals: Journals, user_id: Uuid
             if let Some(selected) = journals.selected.clone() {
                 match selected {
                     AssociatedJournal::Owned { id, .. } => {
-                        EitherOf4::A(view! { <AddAccount user_id=user_id journal_id=id /> })
+                        view! { <AddAccount user_id=user_id journal_id=id /> }.into_any()
                     }
                     AssociatedJournal::Shared { id, tenant_info, .. } => {
                         if tenant_info.tenant_permissions.contains(Permissions::ADDACCOUNT) {
-                            EitherOf4::B(view! { <AddAccount user_id=user_id journal_id=id /> })
+                            view! { <AddAccount user_id=user_id journal_id=id /> }.into_any()
                         } else {
-                            EitherOf4::C(view! { "" })
+                            view! { "" }.into_any()
                         }
                     }
                 }
             } else {
-                EitherOf4::D(view! { "" })
+                view! { "" }.into_any()
             }
         }}
     }

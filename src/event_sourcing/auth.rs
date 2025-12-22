@@ -1,0 +1,74 @@
+use leptos::prelude::ServerFnError;
+use sqlx::PgPool;
+use uuid::Uuid;
+
+use crate::api::return_types::KnownErrors;
+
+#[derive(sqlx::Type, PartialEq)]
+#[sqlx(type_name = "smallint")]
+#[repr(i16)]
+pub enum AuthEvent {
+    Login = 1,
+    Logout = 2,
+}
+
+impl AuthEvent {
+    pub async fn push_db(
+        &self,
+        user_id: &Uuid,
+        session_id: &String,
+        pool: &PgPool,
+    ) -> Result<i64, ServerFnError> {
+        let id: i64 = sqlx::query_scalar(
+            r#"
+            INSERT INTO auth_events (
+                user_id,
+                session_id,
+                event_type
+            )
+            VALUES ($1, $2, $3)
+            RETURNING id
+            "#,
+        )
+        .bind(user_id)
+        .bind(session_id)
+        .bind(self)
+        .fetch_one(pool)
+        .await?;
+
+        Ok(id)
+    }
+}
+
+pub async fn get_user_id(session_id: &String, pool: &PgPool) -> Result<Uuid, ServerFnError> {
+    let event: Vec<(Uuid, AuthEvent)> = sqlx::query_as(
+        r#"
+        SELECT user_id, event_type FROM auth_events
+        WHERE session_id = $1
+        ORDER BY id DESC
+        LIMIT 1
+        "#,
+    )
+    .bind(session_id)
+    .fetch_all(pool)
+    .await?;
+
+    // check that a row with the session id exists
+    let (id, auth_type) = match event.first() {
+        Some(s) => s,
+        None => {
+            return Err(ServerFnError::ServerError(
+                KnownErrors::NotLoggedIn.to_string()?,
+            ));
+        }
+    };
+
+    // if the latest event was a login, return the user id
+    if *auth_type == AuthEvent::Login {
+        return Ok(*id);
+    }
+
+    Err(ServerFnError::ServerError(
+        KnownErrors::NotLoggedIn.to_string()?,
+    ))
+}

@@ -5,12 +5,9 @@ use sqlx::{PgPool, query_scalar, types::JsonValue};
 use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
-use crate::{api::return_types::KnownErrors, event_sourcing::journal::Permissions};
-
-use super::event::{AggregateType, DomainEvent, EventType};
+use crate::event_sourcing::journal::Permissions;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(tag = "type", content = "data")]
 pub enum UserEvent {
     Created {
         username: String,
@@ -21,12 +18,6 @@ pub enum UserEvent {
     },
     PasswordUpdated {
         hashed_password: String,
-    },
-    LoggedIn {
-        session_id: String,
-    },
-    LoggedOut {
-        session_id: String,
     },
     CreatedJournal {
         id: Uuid,
@@ -52,24 +43,53 @@ pub enum UserEvent {
     Deleted,
 }
 
+#[derive(sqlx::Type)]
+#[sqlx(type_name = "smallint")]
+#[repr(i16)]
+pub enum UserEventType {
+    Created = 1,
+    UsernameUpdated = 2,
+    PasswordUpdated = 3,
+    CreatedJournal = 4,
+    InvitedToJournal = 5,
+    AcceptedJournalInvite = 6,
+    DeclinedJournalInvite = 7,
+    RemovedFromJournal = 8,
+    SelectedJournal = 9,
+    Deleted = 10,
+}
+
 impl UserEvent {
+    pub fn get_type(&self) -> UserEventType {
+        use UserEventType::*;
+        match self {
+            Self::Created { .. } => Created,
+            Self::UsernameUpdated { .. } => UsernameUpdated,
+            Self::PasswordUpdated { .. } => PasswordUpdated,
+            Self::CreatedJournal { .. } => CreatedJournal,
+            Self::InvitedToJournal { .. } => InvitedToJournal,
+            Self::AcceptedJournalInvite { .. } => AcceptedJournalInvite,
+            Self::DeclinedJournalInvite { .. } => DeclinedJournalInvite,
+            Self::RemovedFromJournal { .. } => RemovedFromJournal,
+            Self::SelectedJournal { .. } => SelectedJournal,
+            Self::Deleted => Deleted,
+        }
+    }
     pub async fn push_db(&self, uuid: &Uuid, pool: &PgPool) -> Result<i64, ServerFnError> {
-        let payload = serde_json::to_value(DomainEvent::User(self.clone()))?;
+        let payload = serde_json::to_value(self.clone())?;
         let id: i64 = sqlx::query_scalar(
             r#"
-            INSERT INTO events (
-                aggregate_id,
-                aggregate_type,
+            INSERT INTO user_events (
+                user_id,
                 event_type,
                 payload
             )
-            VALUES ($1, $2, $3, $4)
+            VALUES ($1, $2, $3)
             RETURNING id
             "#,
         )
         .bind(uuid)
-        .bind(AggregateType::User)
-        .bind(EventType::from_user_event(self))
+        .bind(self.get_type())
         .bind(payload)
         .fetch_one(pool)
         .await?;
@@ -94,18 +114,17 @@ pub struct UserState {
 impl UserState {
     pub async fn build(
         id: &Uuid,
-        event_types: Vec<EventType>,
+        event_types: Vec<UserEventType>,
         pool: &PgPool,
     ) -> Result<Self, ServerFnError> {
         let user_events: Vec<JsonValue> = query_scalar(
             r#"
-            SELECT payload FROM events
-            WHERE aggregate_id = $1 AND aggregate_type = $2 AND event_type = ANY($3)
+            SELECT payload FROM user_events
+            WHERE user_id = $1 AND event_type = ANY($2)
             ORDER BY created_at ASC
             "#,
         )
         .bind(id)
-        .bind(AggregateType::User)
         .bind(&event_types)
         .fetch_all(pool)
         .await?;
@@ -117,8 +136,8 @@ impl UserState {
         };
 
         for raw_event in user_events {
-            let domain_event: DomainEvent = serde_json::from_value(raw_event)?;
-            aggregate.apply(domain_event.to_user_event()?).await;
+            let event: UserEvent = serde_json::from_value(raw_event)?;
+            aggregate.apply(event);
         }
         Ok(aggregate)
     }
@@ -130,13 +149,13 @@ impl UserState {
         };
 
         for raw_event in events {
-            let domain_event: DomainEvent = serde_json::from_value(raw_event)?;
-            aggregate.apply(domain_event.to_user_event()?).await;
+            let event: UserEvent = serde_json::from_value(raw_event)?;
+            aggregate.apply(event);
         }
         Ok(aggregate)
     }
 
-    pub async fn apply(&mut self, event: UserEvent) {
+    pub fn apply(&mut self, event: UserEvent) {
         match event {
             UserEvent::Created {
                 username,
@@ -149,12 +168,6 @@ impl UserState {
             UserEvent::PasswordUpdated {
                 hashed_password: password,
             } => self.hashed_password = password,
-            UserEvent::LoggedIn { session_id } => {
-                _ = self.authenticated_sessions.insert(session_id)
-            }
-            UserEvent::LoggedOut { session_id } => {
-                _ = self.authenticated_sessions.remove(&session_id)
-            }
             UserEvent::CreatedJournal { id } => _ = self.owned_journals.insert(id),
             UserEvent::InvitedToJournal {
                 id,
@@ -194,62 +207,23 @@ pub async fn get_id_from_username(
 ) -> Result<Option<Uuid>, ServerFnError> {
     Ok(query_scalar(
         r#"
-        SELECT aggregate_id FROM events
-        WHERE (event_type = $1 OR event_type = $2) AND payload->'data'->>'username' = $3
+        SELECT user_id FROM user_events
+        WHERE (event_type = $1 OR event_type = $2) AND COALESCE( payload-> 'Created' ->> 'username', payload -> 'UsernameUpdated' ->> 'username') = $3
         ORDER BY created_at DESC
         LIMIT 1
         "#,
     )
-    .bind(EventType::UserCreated)
-    .bind(EventType::UsernameUpdated)
+    .bind(UserEventType::Created)
+    .bind(UserEventType::UsernameUpdated)
     .bind(username)
     .fetch_optional(pool)
     .await?)
 }
 
-pub async fn get_id_from_session(
-    session_id: &String,
-    pool: &PgPool,
-) -> Result<Uuid, ServerFnError> {
-    let uuid: Option<Uuid> = query_scalar(
-        r#"
-        SELECT aggregate_id FROM events
-        WHERE event_type = $1 AND payload->'data'->>'session_id' = $2
-        ORDER BY created_at DESC
-        LIMIT 1
-        "#,
-    )
-    .bind(EventType::UserLoggedIn)
-    .bind(session_id)
-    .fetch_optional(pool)
-    .await?;
-
-    if let Some(unwrapped_uuid) = uuid {
-        let user = UserState::build(
-            &unwrapped_uuid,
-            vec![
-                EventType::UserCreated,
-                EventType::UserLoggedIn,
-                EventType::UserLoggedOut,
-            ],
-            pool,
-        )
-        .await?;
-
-        if user.authenticated_sessions.contains(session_id) {
-            return Ok(user.id);
-        }
-    }
-
-    Err(ServerFnError::ServerError(
-        KnownErrors::NotLoggedIn.to_string()?,
-    ))
-}
-
 pub async fn get_username_from_id(user_id: &Uuid, pool: &PgPool) -> Result<String, ServerFnError> {
     let user = UserState::build(
         user_id,
-        vec![EventType::UserCreated, EventType::UsernameUpdated],
+        vec![UserEventType::Created, UserEventType::UsernameUpdated],
         pool,
     )
     .await?;
@@ -266,7 +240,7 @@ pub async fn get_username_from_id(user_id: &Uuid, pool: &PgPool) -> Result<Strin
 pub async fn get_hashed_pw(user_id: &Uuid, pool: &PgPool) -> Result<String, ServerFnError> {
     let user = UserState::build(
         user_id,
-        vec![EventType::UserCreated, EventType::UserPasswordUpdated],
+        vec![UserEventType::Created, UserEventType::PasswordUpdated],
         pool,
     )
     .await?;

@@ -1,11 +1,8 @@
 #[allow(dead_code)]
-#[cfg(feature = "ssr")]
-pub mod event;
-
-#[allow(dead_code)]
-#[cfg(feature = "ssr")]
 pub mod user;
 
 #[allow(dead_code)]
-#[cfg(feature = "ssr")]
 pub mod journal;
+
+#[allow(dead_code)]
+pub mod auth;
