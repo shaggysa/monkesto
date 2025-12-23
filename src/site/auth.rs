@@ -4,7 +4,6 @@ use leptos::prelude::*;
 #[component]
 pub fn ClientLogin() -> impl IntoView {
     use crate::api::main_api::{Login, get_user_id_from_session};
-    use leptos::either::{Either, EitherOf3};
 
     let login = ServerAction::<Login>::new();
     let logged_in = Resource::new(|| (), |_| async { get_user_id_from_session().await }); // this throws an error if the database can't find an account associated with the session
@@ -23,98 +22,97 @@ pub fn ClientLogin() -> impl IntoView {
                     // redirect to the homepage if the user's session id is already associated with an account
                     {move || match logged_in.get() {
                         Some(Ok(_)) => {
-                            EitherOf3::A(view! { <meta http-equiv="refresh" content="0; url=/" /> })
+                            view! { <meta http-equiv="refresh" content="0; url=/" /> }.into_any()
                         }
                         Some(Err(_)) => {
-                            EitherOf3::B(
-                                view! {
-                                    <ActionForm action=login>
-                                        <div class="space-y-6">
-                                            <div>
-                                                <label
-                                                    for="username"
-                                                    class="block text-sm/6 font-medium text-gray-900 dark:text-gray-100"
-                                                >
-                                                    Username
-                                                </label>
-                                                <div class="mt-2">
-                                                    <input
-                                                        id="username"
-                                                        type="text"
-                                                        name="username"
-                                                        required
-                                                        autocomplete="username"
-                                                        class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500"
-                                                        value=move || match login.value().get() {
-                                                            Some(Err(e)) => {
-                                                                match KnownErrors::parse_error(e) {
-                                                                    Some(KnownErrors::LoginFailed { username }) => username,
-                                                                    _ => "".to_string(),
-                                                                }
+                            view! {
+                                <ActionForm action=login>
+                                    <div class="space-y-6">
+                                        <div>
+                                            <label
+                                                for="username"
+                                                class="block text-sm/6 font-medium text-gray-900 dark:text-gray-100"
+                                            >
+                                                Username
+                                            </label>
+                                            <div class="mt-2">
+                                                <input
+                                                    id="username"
+                                                    type="text"
+                                                    name="username"
+                                                    required
+                                                    autocomplete="username"
+                                                    class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500"
+                                                    value=move || match login.value().get() {
+                                                        Some(Err(e)) => {
+                                                            match KnownErrors::parse_error(e) {
+                                                                Some(KnownErrors::LoginFailed { username }) => username,
+                                                                _ => "".to_string(),
                                                             }
-                                                            _ => "".to_string(),
                                                         }
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <div class="flex items-center justify-between">
-                                                    <label
-                                                        for="password"
-                                                        class="block text-sm/6 font-medium text-gray-900 dark:text-gray-100"
-                                                    >
-                                                        Password
-                                                    </label>
-                                                // <div class="text-sm">
-                                                // <a
-                                                // href="#"
-                                                // class="font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
-                                                // >
-                                                // Forgot password?
-                                                // </a>
-                                                // </div>
-                                                </div>
-                                                <div class="mt-2">
-                                                    <input
-                                                        id="password"
-                                                        type="password"
-                                                        name="password"
-                                                        required
-                                                        autocomplete="current-password"
-                                                        class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <button
-                                                    type="submit"
-                                                    class="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:shadow-none dark:hover:bg-indigo-400 dark:focus-visible:outline-indigo-500"
-                                                >
-                                                    Sign in
-                                                </button>
+                                                        _ => "".to_string(),
+                                                    }
+                                                />
                                             </div>
                                         </div>
-                                    </ActionForm>
-                                    <p class="mt-10 text-center text-sm/6 text-gray-500 dark:text-gray-400">
-                                        Need an account?
-                                        <a
-                                            href="/signup"
-                                            class="font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
-                                        >
-                                            Register
-                                        </a>
-                                    </p>
-                                },
-                            )
+
+                                        <div>
+                                            <div class="flex items-center justify-between">
+                                                <label
+                                                    for="password"
+                                                    class="block text-sm/6 font-medium text-gray-900 dark:text-gray-100"
+                                                >
+                                                    Password
+                                                </label>
+                                            // <div class="text-sm">
+                                            // <a
+                                            // href="#"
+                                            // class="font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                                            // >
+                                            // Forgot password?
+                                            // </a>
+                                            // </div>
+                                            </div>
+                                            <div class="mt-2">
+                                                <input
+                                                    id="password"
+                                                    type="password"
+                                                    name="password"
+                                                    required
+                                                    autocomplete="current-password"
+                                                    class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <button
+                                                type="submit"
+                                                class="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:shadow-none dark:hover:bg-indigo-400 dark:focus-visible:outline-indigo-500"
+                                            >
+                                                Sign in
+                                            </button>
+                                        </div>
+                                    </div>
+                                </ActionForm>
+                                <p class="mt-10 text-center text-sm/6 text-gray-500 dark:text-gray-400">
+                                    Need an account?
+                                    <a
+                                        href="/signup"
+                                        class="font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                                    >
+                                        Register
+                                    </a>
+                                </p>
+                            }
+                                .into_any()
                         }
-                        None => EitherOf3::C(view! { "" }),
+                        None => view! { "" }.into_any(),
                     }}
                 </Suspense>
                 {move || match login.value().get() {
-                    Some(Err(e)) => Either::Left(view! { <p>{e.to_string()}</p> }),
-                    _ => Either::Right(view! { "" }),
+                    Some(Err(e)) => view! { <p>{e.to_string()}</p> }.into_any(),
+                    _ => view! { "" }.into_any(),
                 }}
             </div>
         </div>
@@ -124,7 +122,6 @@ pub fn ClientLogin() -> impl IntoView {
 #[component]
 pub fn ClientSignUp() -> impl IntoView {
     use crate::api::main_api::CreateUser;
-    use leptos::either::Either;
     let signup = ServerAction::<CreateUser>::new();
 
     view! {
@@ -222,8 +219,8 @@ pub fn ClientSignUp() -> impl IntoView {
                 </Suspense>
 
                 {move || match signup.value().get() {
-                    Some(Err(e)) => Either::Left(view! { <p>{e.to_string()}</p> }),
-                    _ => Either::Right(view! { "" }),
+                    Some(Err(e)) => view! { <p>{e.to_string()}</p> }.into_any(),
+                    _ => view! { "" }.into_any(),
                 }}
             </div>
         </div>

@@ -22,7 +22,7 @@ async fn main() {
     use tower_sessions::{Expiry, SessionManagerLayer, cookie::time::Duration};
     use tower_sessions_sqlx_store::PostgresStore;
 
-    let conf = get_configuration(None).expect("invaid configuration");
+    let conf = get_configuration(None).expect("invalid configuration");
     let addr = conf.leptos_options.site_addr;
     let leptos_options = conf.leptos_options;
     // Generate the list of routes in your Leptos App
@@ -38,12 +38,37 @@ async fn main() {
         .expect("failed to connect to the postgres pool");
 
     sqlx::query(
-        "CREATE TABLE IF NOT EXISTS events (
+        "CREATE TABLE IF NOT EXISTS user_events (
             id BIGSERIAL PRIMARY KEY,
-            aggregate_id UUID NOT NULL,
-            aggregate_type SMALLINT NOT NULL,
+            user_id UUID NOT NULL,
             event_type SMALLINT NOT NULL,
             payload JSONB NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+            )",
+    )
+    .execute(&pool)
+    .await
+    .expect("failed to create the events table");
+
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS journal_events (
+            id BIGSERIAL PRIMARY KEY,
+            journal_id UUID NOT NULL,
+            event_type SMALLINT NOT NULL,
+            payload JSONB NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+            )",
+    )
+    .execute(&pool)
+    .await
+    .expect("failed to create the events table");
+
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS auth_events (
+            id BIGSERIAL PRIMARY KEY,
+            user_id UUID NOT NULL,
+            session_id CHAR(128) NOT NULL,
+            event_type SMALLINT NOT NULL,
             created_at TIMESTAMPTZ NOT NULL DEFAULT now()
             )",
     )

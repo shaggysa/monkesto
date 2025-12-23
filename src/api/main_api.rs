@@ -1,8 +1,10 @@
 use super::extensions;
 use super::return_types::*;
 use crate::event_sourcing;
+use crate::event_sourcing::auth;
+use crate::event_sourcing::auth::AuthEvent;
+use crate::event_sourcing::journal;
 use chrono::Utc;
-use event_sourcing::event::{AggregateType, DomainEvent, EventType};
 use event_sourcing::journal::{
     BalanceUpdate, JournalEvent, JournalState, Permissions, Transaction,
 };
@@ -15,7 +17,10 @@ use uuid::Uuid;
 pub async fn get_user_id_from_session() -> Result<Uuid, ServerFnError> {
     let pool = extensions::get_pool().await?;
     let session_id = extensions::get_session_id().await?;
-    user::get_id_from_session(&session_id, &pool).await // this will return an KnownErrors::NotLoggedIn if the user isn't logged in
+
+    // this returns KnownErrors::NotLoggedIn if the session id
+    // isnt associated with a logged in user
+    auth::get_user_id(&session_id, &pool).await
 }
 
 #[server]
@@ -57,9 +62,7 @@ pub async fn create_user(
         .push_db(&uuid, &pool)
         .await?;
 
-        UserEvent::LoggedIn { session_id }
-            .push_db(&uuid, &pool)
-            .await?;
+        AuthEvent::Login.push_db(&uuid, &session_id, &pool).await?;
     } else {
         return Err(ServerFnError::ServerError(
             KnownErrors::UserExists { username }.to_string()?,
@@ -86,8 +89,8 @@ pub async fn login(username: String, password: String) -> Result<(), ServerFnErr
     let hashed_password = user::get_hashed_pw(&user_id, &pool).await?;
 
     if bcrypt::verify(&password, &hashed_password)? {
-        UserEvent::LoggedIn { session_id }
-            .push_db(&user_id, &pool)
+        AuthEvent::Login
+            .push_db(&user_id, &session_id, &pool)
             .await?;
     } else {
         return Err(ServerFnError::ServerError(
@@ -99,28 +102,24 @@ pub async fn login(username: String, password: String) -> Result<(), ServerFnErr
 }
 
 #[server]
-pub async fn log_out(user_id: String) -> Result<(), ServerFnError> {
-    let user_id = Uuid::try_from(user_id)?;
+pub async fn log_out() -> Result<(), ServerFnError> {
     let session_id = extensions::get_session_id().await?;
-    use EventType::*;
-
     let pool = extensions::get_pool().await?;
 
-    let user_state = UserState::build(&user_id, vec![UserLoggedIn, UserLoggedIn], &pool).await?;
+    let user_id = auth::get_user_id(&session_id, &pool).await?;
 
-    if user_state.authenticated_sessions.contains(&session_id) {
-        UserEvent::LoggedOut { session_id }
-            .push_db(&user_id, &pool)
-            .await?;
-    }
-
+    AuthEvent::Logout
+        .push_db(&user_id, &session_id, &pool)
+        .await?;
     Ok(())
 }
 
 #[server]
-pub async fn create_journal(journal_name: String, user_id: String) -> Result<(), ServerFnError> {
-    let user_id = Uuid::try_parse(&user_id)?;
+pub async fn create_journal(journal_name: String) -> Result<(), ServerFnError> {
+    let session_id = extensions::get_session_id().await?;
     let pool = extensions::get_pool().await?;
+
+    let user_id = auth::get_user_id(&session_id, &pool).await?;
 
     if journal_name.trim().is_empty() {
         return Err(ServerFnError::ServerError(
@@ -145,21 +144,22 @@ pub async fn create_journal(journal_name: String, user_id: String) -> Result<(),
 }
 
 #[server]
-pub async fn select_journal(user_id: String, journal_id: String) -> Result<(), ServerFnError> {
-    let user_id = Uuid::try_from(user_id)?;
-    let journal_id = Uuid::try_from(journal_id)?;
+pub async fn select_journal(journal_id: String) -> Result<(), ServerFnError> {
+    use user::UserEventType::*;
 
-    use EventType::*;
+    let journal_id = Uuid::try_from(journal_id)?;
+    let session_id = extensions::get_session_id().await?;
     let pool = extensions::get_pool().await?;
+    let user_id = auth::get_user_id(&session_id, &pool).await?;
 
     let user_state = UserState::build(
         &user_id,
         vec![
-            UserCreatedJournal,
-            UserInvitedToJournal,
-            UserAcceptedJournalInvite,
-            UserDeclinedJournalInvite,
-            UserRemovedFromJournal,
+            CreatedJournal,
+            InvitedToJournal,
+            AcceptedJournalInvite,
+            DeclinedJournalInvite,
+            RemovedFromJournal,
         ],
         &pool,
     )
@@ -188,26 +188,29 @@ pub async fn select_journal(user_id: String, journal_id: String) -> Result<(), S
 #[server]
 pub async fn invite_to_journal(
     journal_id: String,
-    own_id: String,
     invitee_username: String,
     permissions: String,
 ) -> Result<(), ServerFnError> {
+    use user::UserEventType::*;
+
     let journal_id = Uuid::try_parse(&journal_id)?;
-    let own_id = Uuid::try_parse(&own_id)?;
 
     let permissions: Permissions = serde_json::from_str(&permissions)?;
 
+    let session_id = extensions::get_session_id().await?;
     let pool = extensions::get_pool().await?;
+
+    let own_id = auth::get_user_id(&session_id, &pool).await?;
 
     if let Some(invitee_id) = user::get_id_from_username(&invitee_username, &pool).await? {
         let inviting_user_state = UserState::build(
             &own_id,
             vec![
-                EventType::UserCreatedJournal,
-                EventType::UserInvitedToJournal,
-                EventType::UserAcceptedJournalInvite,
-                EventType::UserDeclinedJournalInvite,
-                EventType::UserRemovedFromJournal,
+                CreatedJournal,
+                InvitedToJournal,
+                AcceptedJournalInvite,
+                DeclinedJournalInvite,
+                RemovedFromJournal,
             ],
             &pool,
         )
@@ -216,11 +219,11 @@ pub async fn invite_to_journal(
         let invitee_state = UserState::build(
             &invitee_id,
             vec![
-                EventType::UserCreatedJournal,
-                EventType::UserInvitedToJournal,
-                EventType::UserAcceptedJournalInvite,
-                EventType::UserDeclinedJournalInvite,
-                EventType::UserRemovedFromJournal,
+                CreatedJournal,
+                InvitedToJournal,
+                AcceptedJournalInvite,
+                DeclinedJournalInvite,
+                RemovedFromJournal,
             ],
             &pool,
         )
@@ -280,31 +283,31 @@ pub async fn invite_to_journal(
 }
 
 #[server]
-pub async fn get_journal_invites(
-    user_id: Result<Uuid, ServerFnError>,
-) -> Result<Vec<JournalInvite>, ServerFnError> {
-    let user_id = user_id?;
-    use EventType::*;
+pub async fn get_journal_invites() -> Result<Vec<JournalInvite>, ServerFnError> {
+    use journal::JournalEventType::{Created, *};
+    use user::UserEventType::*;
 
     let mut invites = Vec::new();
 
+    let session_id = extensions::get_session_id().await?;
     let pool = extensions::get_pool().await?;
+
+    let user_id = auth::get_user_id(&session_id, &pool).await?;
 
     let user_state = UserState::build(
         &user_id,
         vec![
-            UserInvitedToJournal,
-            UserAcceptedJournalInvite,
-            UserDeclinedJournalInvite,
-            UserRemovedFromJournal,
+            InvitedToJournal,
+            AcceptedJournalInvite,
+            DeclinedJournalInvite,
+            RemovedFromJournal,
         ],
         &pool,
     )
     .await?;
 
     for (id, tenant_info) in user_state.pending_journal_invites {
-        let journal_state =
-            JournalState::build(&id, vec![JournalCreated, JournalRenamed], &pool).await?;
+        let journal_state = JournalState::build(&id, vec![Created, Renamed], &pool).await?;
 
         invites.push(JournalInvite {
             id,
@@ -318,26 +321,27 @@ pub async fn get_journal_invites(
 
 #[server]
 pub async fn respond_to_journal_invite(
-    user_id: String,
     journal_id: String,
     accepted: String,
 ) -> Result<(), ServerFnError> {
-    let user_id = Uuid::try_parse(&user_id)?;
     let journal_id = Uuid::try_parse(&journal_id)?;
 
     let accepted: bool = serde_json::from_str(&accepted)?;
 
-    use EventType::*;
+    use user::UserEventType::*;
 
+    let session_id = extensions::get_session_id().await?;
     let pool = extensions::get_pool().await?;
+
+    let user_id = auth::get_user_id(&session_id, &pool).await?;
 
     let user_state = UserState::build(
         &user_id,
         vec![
-            UserInvitedToJournal,
-            UserAcceptedJournalInvite,
-            UserDeclinedJournalInvite,
-            UserRemovedFromJournal,
+            InvitedToJournal,
+            AcceptedJournalInvite,
+            DeclinedJournalInvite,
+            RemovedFromJournal,
         ],
         &pool,
     )
@@ -363,35 +367,34 @@ pub async fn respond_to_journal_invite(
 }
 
 #[server]
-pub async fn get_associated_journals(
-    user_id: Result<Uuid, ServerFnError>,
-) -> Result<Journals, ServerFnError> {
-    let user_id = user_id?;
-
-    use EventType::*;
+pub async fn get_associated_journals() -> Result<Journals, ServerFnError> {
+    use journal::JournalEventType::{Created, Deleted};
+    use user::UserEventType::*;
     let mut journals = Vec::new();
 
     let mut selected: Option<AssociatedJournal> = None;
 
+    let session_id = extensions::get_session_id().await?;
     let pool = extensions::get_pool().await?;
+
+    let user_id = auth::get_user_id(&session_id, &pool).await?;
 
     let user = UserState::build(
         &user_id,
         vec![
-            UserCreatedJournal,
-            UserInvitedToJournal,
-            UserAcceptedJournalInvite,
-            UserDeclinedJournalInvite,
-            UserRemovedFromJournal,
-            UserSelectedJournal,
+            CreatedJournal,
+            InvitedToJournal,
+            AcceptedJournalInvite,
+            DeclinedJournalInvite,
+            RemovedFromJournal,
+            SelectedJournal,
         ],
         &pool,
     )
     .await?;
 
     for journal_id in user.owned_journals {
-        let journal_state =
-            JournalState::build(&journal_id, vec![JournalCreated, JournalDeleted], &pool).await?;
+        let journal_state = JournalState::build(&journal_id, vec![Created, Deleted], &pool).await?;
         if !journal_state.deleted {
             journals.push(AssociatedJournal::Owned {
                 id: journal_id,
@@ -409,12 +412,8 @@ pub async fn get_associated_journals(
     }
 
     for shared_journal in user.accepted_journal_invites {
-        let journal_state = JournalState::build(
-            &shared_journal.0,
-            vec![JournalCreated, JournalDeleted],
-            &pool,
-        )
-        .await?;
+        let journal_state =
+            JournalState::build(&shared_journal.0, vec![Created, Deleted], &pool).await?;
         if !journal_state.deleted {
             journals.push(AssociatedJournal::Shared {
                 id: shared_journal.0,
@@ -440,25 +439,26 @@ pub async fn get_associated_journals(
 }
 
 #[server]
-pub async fn get_accounts(
-    user_id: Result<Uuid, ServerFnError>,
-) -> Result<Vec<Account>, ServerFnError> {
-    let user_id = user_id?;
-    use EventType::*;
+pub async fn get_accounts() -> Result<Vec<Account>, ServerFnError> {
+    use journal::JournalEventType::{Created, *};
+    use user::UserEventType::*;
 
     let mut accounts = Vec::new();
 
+    let session_id = extensions::get_session_id().await?;
     let pool = extensions::get_pool().await?;
+
+    let user_id = auth::get_user_id(&session_id, &pool).await?;
 
     let user_state = UserState::build(
         &user_id,
         vec![
-            UserCreatedJournal,
-            UserInvitedToJournal,
-            UserAcceptedJournalInvite,
-            UserDeclinedJournalInvite,
-            UserRemovedFromJournal,
-            UserSelectedJournal,
+            CreatedJournal,
+            InvitedToJournal,
+            AcceptedJournalInvite,
+            DeclinedJournalInvite,
+            RemovedFromJournal,
+            SelectedJournal,
         ],
         &pool,
     )
@@ -487,12 +487,7 @@ pub async fn get_accounts(
 
     let journal_state = JournalState::build(
         &journal_id,
-        vec![
-            JournalCreated,
-            JournalAccountCreated,
-            JournalAccountDeleted,
-            JournalAddedEntry,
-        ],
+        vec![Created, CreatedAccount, DeletedAccount, AddedEntry],
         &pool,
     )
     .await?;
@@ -508,14 +503,14 @@ pub async fn get_accounts(
 }
 
 #[server]
-pub async fn add_account(
-    user_id: Uuid,
-    journal_id: Uuid,
-    account_name: String,
-) -> Result<(), ServerFnError> {
-    use EventType::*;
+pub async fn add_account(journal_id: Uuid, account_name: String) -> Result<(), ServerFnError> {
+    use journal::JournalEventType::*;
+    use user::UserEventType::*;
 
+    let session_id = extensions::get_session_id().await?;
     let pool = extensions::get_pool().await?;
+
+    let user_id = auth::get_user_id(&session_id, &pool).await?;
 
     if account_name.trim().is_empty() {
         return Err(ServerFnError::ServerError(
@@ -526,23 +521,19 @@ pub async fn add_account(
     let user_state = user::UserState::build(
         &user_id,
         vec![
-            UserCreatedJournal,
-            UserInvitedToJournal,
-            UserAcceptedJournalInvite,
-            UserDeclinedJournalInvite,
-            UserRemovedFromJournal,
+            CreatedJournal,
+            InvitedToJournal,
+            AcceptedJournalInvite,
+            DeclinedJournalInvite,
+            RemovedFromJournal,
         ],
         &pool,
     )
     .await?;
 
     if user_state.owned_journals.contains(&journal_id) {
-        let state = JournalState::build(
-            &journal_id,
-            vec![JournalAccountCreated, JournalAccountDeleted],
-            &pool,
-        )
-        .await?;
+        let state =
+            JournalState::build(&journal_id, vec![CreatedAccount, DeletedAccount], &pool).await?;
 
         if state.accounts.contains_key(&account_name) {
             return Err(ServerFnError::ServerError(
@@ -562,12 +553,8 @@ pub async fn add_account(
                 .contains(Permissions::ADDACCOUNT)
         })
     {
-        let state = JournalState::build(
-            &journal_id,
-            vec![JournalAccountCreated, JournalAccountDeleted],
-            &pool,
-        )
-        .await?;
+        let state =
+            JournalState::build(&journal_id, vec![CreatedAccount, DeletedAccount], &pool).await?;
 
         if state.accounts.contains_key(&account_name) {
             return Err(ServerFnError::ServerError(
@@ -592,26 +579,28 @@ pub async fn add_account(
 
 #[server]
 pub async fn transact(
-    user_id: String,
     journal_id: String,
     account_names: Vec<String>,
     balance_add_cents: Vec<String>,
     balance_remove_cents: Vec<String>,
 ) -> Result<(), ServerFnError> {
-    let user_id = Uuid::try_parse(&user_id)?;
+    use user::UserEventType::*;
 
     let journal_id = Uuid::try_parse(&journal_id)?;
 
+    let session_id = extensions::get_session_id().await?;
     let pool = extensions::get_pool().await?;
+
+    let user_id = auth::get_user_id(&session_id, &pool).await?;
 
     let user_state = UserState::build(
         &user_id,
         vec![
-            EventType::UserCreatedJournal,
-            EventType::UserInvitedToJournal,
-            EventType::UserAcceptedJournalInvite,
-            EventType::UserDeclinedJournalInvite,
-            EventType::UserRemovedFromJournal,
+            CreatedJournal,
+            InvitedToJournal,
+            AcceptedJournalInvite,
+            DeclinedJournalInvite,
+            RemovedFromJournal,
         ],
         &pool,
     )
@@ -687,11 +676,10 @@ pub async fn transact(
 }
 
 pub async fn get_transactions(
-    user_id: Result<Uuid, ServerFnError>,
     journals: Result<Journals, ServerFnError>,
 ) -> Result<Vec<TransactionWithTimeStamp>, ServerFnError> {
-    use EventType::*;
-    let user_id = user_id?;
+    use user::UserEventType::*;
+
     let journal_id = match journals?.selected {
         Some(s) => s.get_id(),
         None => {
@@ -702,16 +690,20 @@ pub async fn get_transactions(
     };
 
     let mut bundled_transactions = Vec::new();
+
+    let session_id = extensions::get_session_id().await?;
     let pool = extensions::get_pool().await?;
+
+    let user_id = auth::get_user_id(&session_id, &pool).await?;
 
     let user_state = UserState::build(
         &user_id,
         vec![
-            UserCreatedJournal,
-            UserInvitedToJournal,
-            UserAcceptedJournalInvite,
-            UserDeclinedJournalInvite,
-            UserRemovedFromJournal,
+            CreatedJournal,
+            InvitedToJournal,
+            AcceptedJournalInvite,
+            DeclinedJournalInvite,
+            RemovedFromJournal,
         ],
         &pool,
     )
@@ -731,27 +723,23 @@ pub async fn get_transactions(
 
     let raw_transactions: Vec<(sqlx::types::JsonValue, chrono::DateTime<Utc>)> = sqlx::query_as(
         r#"
-        SELECT payload, created_at FROM events
-        WHERE aggregate_id = $1 AND aggregate_type = $2 AND event_type = $3
+        SELECT payload, created_at FROM journal_events
+        WHERE journal_id = $1 AND event_type = $2
         ORDER BY created_at ASC
         "#,
     )
     .bind(journal_id)
-    .bind(AggregateType::Journal)
-    .bind(EventType::JournalAddedEntry)
+    .bind(journal::JournalEventType::AddedEntry)
     .fetch_all(&pool)
     .await?;
 
     for raw_transaction in raw_transactions {
-        let domain_event: DomainEvent = serde_json::from_value(raw_transaction.0)?;
-        if let JournalEvent::AddedEntry { transaction } = domain_event.to_journal_event()? {
-            let author = UserState::build(
-                &transaction.author,
-                vec![UserCreated, UsernameUpdated],
-                &pool,
-            )
-            .await?
-            .username;
+        let event: JournalEvent = serde_json::from_value(raw_transaction.0)?;
+        if let JournalEvent::AddedEntry { transaction } = event {
+            let author =
+                UserState::build(&transaction.author, vec![Created, UsernameUpdated], &pool)
+                    .await?
+                    .username;
 
             bundled_transactions.push(TransactionWithTimeStamp {
                 transaction: TransactionWithUsername {

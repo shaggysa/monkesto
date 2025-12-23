@@ -1,4 +1,3 @@
-use super::event::{AggregateType, DomainEvent, EventType};
 use bitflags::bitflags;
 use leptos::prelude::ServerFnError;
 use serde::{Deserialize, Serialize};
@@ -8,8 +7,7 @@ use uuid::Uuid;
 
 bitflags! {
     #[derive(Serialize, Deserialize, Hash, Default, Debug, Clone, Copy)]
-    #[serde(transparent)]
-    pub struct Permissions: u16 {
+    pub struct Permissions: i16 {
         const READ = 1 << 0;
         const ADDACCOUNT = 1 << 1;
         const APPENDTRANSACTION = 1 << 2;
@@ -31,7 +29,6 @@ pub struct Transaction {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(tag = "type", content = "data")]
 pub enum JournalEvent {
     Created { name: String, owner: Uuid },
     Renamed { name: String },
@@ -40,25 +37,48 @@ pub enum JournalEvent {
     AddedEntry { transaction: Transaction },
     Deleted,
 }
+
+#[derive(sqlx::Type)]
+#[sqlx(type_name = "smallint")]
+#[repr(i16)]
+pub enum JournalEventType {
+    Created = 1,
+    Renamed = 2,
+    CreatedAccount = 3,
+    DeletedAccount = 4,
+    AddedEntry = 5,
+    Deleted = 6,
+}
+
 impl JournalEvent {
+    fn get_type(&self) -> JournalEventType {
+        use JournalEventType::*;
+        match self {
+            Self::Created { .. } => Created,
+            Self::Renamed { .. } => Renamed,
+            Self::CreatedAccount { .. } => CreatedAccount,
+            Self::DeletedAccount { .. } => DeletedAccount,
+            Self::AddedEntry { .. } => AddedEntry,
+            Self::Deleted => Deleted,
+        }
+    }
+
     pub async fn push_db(&self, uuid: &Uuid, pool: &PgPool) -> Result<i64, ServerFnError> {
-        let payload = serde_json::to_value(DomainEvent::Journal(self.clone()))?;
+        let payload = serde_json::to_value(self)?;
 
         let id: i64 = sqlx::query_scalar(
             r#"
-            INSERT INTO events (
-                aggregate_id,
-                aggregate_type,
+            INSERT INTO journal_events (
+                journal_id,
                 event_type,
                 payload
             )
-            VALUES ($1, $2, $3, $4)
+            VALUES ($1, $2, $3)
             RETURNING id
             "#,
         )
         .bind(uuid)
-        .bind(AggregateType::Journal)
-        .bind(EventType::from_journal_event(self))
+        .bind(self.get_type())
         .bind(payload)
         .fetch_one(pool)
         .await?;
@@ -80,19 +100,18 @@ pub struct JournalState {
 impl JournalState {
     pub async fn build(
         id: &Uuid,
-        event_types: Vec<EventType>,
+        event_types: Vec<JournalEventType>,
         pool: &PgPool,
     ) -> Result<Self, ServerFnError> {
         let journal_events: Vec<JsonValue> = query_scalar(
             r#"
-                SELECT payload FROM events
-                WHERE aggregate_id = $1 AND aggregate_type = $2 AND event_type = ANY($3)
+                SELECT payload FROM journal_events
+                WHERE journal_id = $1 AND event_type = ANY($2)
                 ORDER BY created_at ASC
                 "#,
         )
         .bind(id)
-        .bind(AggregateType::Journal)
-        .bind(&event_types)
+        .bind(event_types)
         .fetch_all(pool)
         .await?;
 
@@ -102,8 +121,8 @@ impl JournalState {
         };
 
         for raw_event in journal_events {
-            let domain_event: DomainEvent = serde_json::from_value(raw_event)?;
-            aggregate.apply(domain_event.to_journal_event()?);
+            let event: JournalEvent = serde_json::from_value(raw_event)?;
+            aggregate.apply(event);
         }
         Ok(aggregate)
     }
@@ -115,8 +134,8 @@ impl JournalState {
         };
 
         for raw_event in events {
-            let domain_event: DomainEvent = serde_json::from_value(raw_event)?;
-            aggregate.apply(domain_event.to_journal_event()?);
+            let event: JournalEvent = serde_json::from_value(raw_event)?;
+            aggregate.apply(event);
         }
         Ok(aggregate)
     }
@@ -169,7 +188,7 @@ pub struct SharedAndPendingJournals {
 pub async fn get_name_from_id(id: &Uuid, pool: &PgPool) -> Result<Option<String>, ServerFnError> {
     let journal_state = JournalState::build(
         id,
-        vec![EventType::JournalCreated, EventType::JournalRenamed],
+        vec![JournalEventType::Created, JournalEventType::Renamed],
         pool,
     )
     .await?;

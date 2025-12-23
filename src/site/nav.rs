@@ -5,7 +5,6 @@ use uuid::Uuid;
 
 #[component]
 pub fn TopBar(journals: Journals, user_id: Uuid) -> impl IntoView {
-    use leptos::either::Either;
     use main_api::{LogOut, SelectJournal};
     let log_out_action = ServerAction::<LogOut>::new();
     let select_journal = ServerAction::<SelectJournal>::new();
@@ -20,17 +19,12 @@ pub fn TopBar(journals: Journals, user_id: Uuid) -> impl IntoView {
                 {move || Suspend::new(async move {
                     match username_resource.await {
                         Err(e) => {
-                            Either::Left(
-                                view! {
-                                    <p>
-                                        "An error occured while fetching username: "{e.to_string()}
-                                    </p>
-                                },
-                            )
+                            view! {
+                                <p>"An error occurred while fetching username: "{e.to_string()}</p>
+                            }
+                                .into_any()
                         }
-                        Ok(s) => {
-                            Either::Right(view! { <h1 class="text-4xl">"Welcome, "{s}"!"</h1> })
-                        }
+                        Ok(s) => view! { <h1 class="text-4xl">"Welcome, "{s}"!"</h1> }.into_any(),
                     }
                 })}
             </Suspense>
@@ -66,7 +60,6 @@ pub fn TopBar(journals: Journals, user_id: Uuid) -> impl IntoView {
             </a>
 
             <ActionForm action=log_out_action>
-                <input type="hidden" name="user_id" value=user_id.to_string() />
                 <button
                     class="mt-3 rounded bg-purple-900 px-2 py-2 font-bold text-white hover:bg-blue-400"
                     type="submit"
@@ -79,7 +72,6 @@ pub fn TopBar(journals: Journals, user_id: Uuid) -> impl IntoView {
             <br />
 
             <ActionForm action=select_journal>
-                <input type="hidden" name="user_id" value=user_id.to_string() />
                 <select name="journal_id">
                     <option value="">"-- Select a Journal --"</option>
                     {journals
@@ -109,13 +101,10 @@ pub fn TopBar(journals: Journals, user_id: Uuid) -> impl IntoView {
             </ActionForm>
             {match select_journal.value().get() {
                 Some(Err(e)) => {
-                    Either::Left(
-                        view! {
-                            <p>"An error occured while switching journals: "{e.to_string()}</p>
-                        },
-                    )
+                    view! { <p>"An error occurred while switching journals: "{e.to_string()}</p> }
+                        .into_any()
                 }
-                _ => Either::Right(view! { "" }),
+                _ => view! { "" }.into_any(),
             }}
         </div>
     }
