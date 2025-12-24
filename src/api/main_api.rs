@@ -4,6 +4,7 @@ use crate::event_sourcing;
 use crate::event_sourcing::auth;
 use crate::event_sourcing::auth::AuthEvent;
 use crate::event_sourcing::journal;
+use crate::event_sourcing::journal::JournalEventType;
 use crate::event_sourcing::username;
 use chrono::Utc;
 use event_sourcing::journal::{
@@ -405,6 +406,7 @@ pub async fn get_associated_journals() -> Result<Journals, ServerFnError> {
             journals.push(AssociatedJournal::Owned {
                 id: journal_id,
                 name: journal_state.name,
+                created_at: journal_state.created_at,
             });
             if journal_id == user.selected_journal {
                 selected = Some(
@@ -424,6 +426,7 @@ pub async fn get_associated_journals() -> Result<Journals, ServerFnError> {
             journals.push(AssociatedJournal::Shared {
                 id: shared_journal.0,
                 name: journal_state.name,
+                created_at: journal_state.created_at,
                 tenant_info: shared_journal.1,
             });
 
@@ -442,6 +445,17 @@ pub async fn get_associated_journals() -> Result<Journals, ServerFnError> {
         associated: journals,
         selected,
     })
+}
+
+#[server]
+pub async fn get_journal_owner(journal_id: String) -> Result<Option<String>, ServerFnError> {
+    let journal_id = Uuid::parse_str(&journal_id)?;
+    let pool = extensions::get_pool().await?;
+
+    let journal_state =
+        JournalState::build(&journal_id, vec![JournalEventType::Created], &pool).await?;
+
+    username::get_username(&journal_state.owner, &pool).await
 }
 
 #[server]

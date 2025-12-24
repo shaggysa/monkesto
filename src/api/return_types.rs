@@ -79,10 +79,12 @@ pub enum AssociatedJournal {
     Owned {
         id: Uuid,
         name: String,
+        created_at: chrono::DateTime<Utc>,
     },
     Shared {
         id: Uuid,
         name: String,
+        created_at: chrono::DateTime<Utc>,
         tenant_info: JournalTenantInfo,
     },
 }
@@ -109,6 +111,12 @@ impl AssociatedJournal {
         match self {
             Self::Owned { name, .. } => name.clone(),
             Self::Shared { name, .. } => name.clone(),
+        }
+    }
+    pub fn get_created_at(&self) -> chrono::DateTime<Utc> {
+        match self {
+            Self::Owned { created_at, .. } => *created_at,
+            Self::Shared { created_at, .. } => *created_at,
         }
     }
 }

@@ -1,8 +1,9 @@
 use bitflags::bitflags;
+use chrono::Utc;
 use leptos::prelude::ServerFnError;
 use postcard::{from_bytes, to_allocvec};
 use serde::{Deserialize, Serialize};
-use sqlx::{PgPool, query_as};
+use sqlx::{PgPool, query_as, query_scalar};
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -92,6 +93,7 @@ impl JournalEvent {
 pub struct JournalState {
     pub id: Uuid,
     pub name: String,
+    pub created_at: chrono::DateTime<Utc>,
     pub owner: Uuid,
     pub accounts: HashMap<String, i64>,
     pub transactions: Vec<Transaction>,
@@ -116,8 +118,20 @@ impl JournalState {
         .fetch_all(pool)
         .await?;
 
+        let created_at: Option<chrono::DateTime<Utc>> = query_scalar(
+            r#"
+                SELECT created_at FROM journal_events
+                WHERE journal_id = $1 AND event_type = $2
+            "#,
+        )
+        .bind(id)
+        .bind(JournalEventType::Created)
+        .fetch_optional(pool)
+        .await?;
+
         let mut aggregate = Self {
             id: *id,
+            created_at: created_at.unwrap_or_default(),
             ..Default::default()
         };
 

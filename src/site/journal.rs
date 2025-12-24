@@ -115,60 +115,94 @@ pub fn JournalDetail() -> impl IntoView {
     use leptos_router::hooks::use_params_map;
 
     let params = use_params_map();
-    let journal_id = move || params.get().get("id").unwrap_or_default().to_string();
 
-    let journal_info = move || {
-        journals()
-            .into_iter()
-            .find(|j| j.id.to_string() == journal_id())
-    };
-
-    let journal_name = move || {
-        journal_info()
-            .as_ref()
-            .map(|j| j.name.clone())
-            .unwrap_or_else(|| "Unknown Journal".to_string())
-    };
+    let journals_resource = Resource::new(
+        move || (),
+        |_| async move { main_api::get_associated_journals().await },
+    );
 
     view! {
-        <Layout page_title=journal_name() show_switch_link=true journal_id=journal_id()>
-
-            <a
-                href=format!("/journal/{}/transaction", journal_id())
-                class="block p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">"Transactions"</h3>
-            </a>
-
-            <a
-                href=format!("/journal/{}/account", journal_id())
-                class="block p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">"Accounts"</h3>
-            </a>
-
-            <a
-                href=format!("/journal/{}/person", journal_id())
-                class="block p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">"People"</h3>
-            </a>
-
-            {if let Some(journal) = journal_info() {
+        <Suspense>
+            {move || Suspend::new(async move {
+                let journal_id = move || params.get().get("id").unwrap_or_default().to_string();
+                let journals = match journals_resource.await {
+                    Ok(s) => s,
+                    Err(e) => {
+                        return view! {
+                            "An error occurred while fetching journals: "
+                            {e.to_string()}
+                        }
+                            .into_any();
+                    }
+                };
+                let Some(journal) = journals
+                    .associated
+                    .into_iter()
+                    .find(|j| j.get_id().to_string() == journal_id()) else {
+                    return view! { <p>"Unable to find journal".to_string()</p> }.into_any()
+                };
+                let journal_owner_resource = Resource::new(
+                    move || (),
+                    move |_| async move { main_api::get_journal_owner(journal_id()).await },
+                );
+                let journal_owner = journal_owner_resource.await;
                 view! {
-                    <div class="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                        <div class="space-y-2">
-                            <div class="text-sm text-gray-600 dark:text-gray-400">
-                                "Created by " {journal.creator_username} " on " {journal.created_at}
+                    <Layout
+                        page_title=journal.clone().get_name()
+                        show_switch_link=true
+                        journal_id=journal_id()
+                    >
+
+                        <a
+                            href=format!("/journal/{}/transaction", journal_id())
+                            class="block p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        >
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                "Transactions"
+                            </h3>
+                        </a>
+
+                        <a
+                            href=format!("/journal/{}/account", journal_id())
+                            class="block p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        >
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                "Accounts"
+                            </h3>
+                        </a>
+
+                        <a
+                            href=format!("/journal/{}/person", journal_id())
+                            class="block p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        >
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                "People"
+                            </h3>
+                        </a>
+
+                        <div class="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            <div class="space-y-2">
+                                <div class="text-sm text-gray-600 dark:text-gray-400">
+                                    "Created by "
+                                    {match journal_owner {
+                                        Err(e) => format!("error: {}", e),
+                                        Ok(None) => "unknown user".to_string(),
+                                        Ok(Some(s)) => s,
+                                    }} " on "
+                                    {journal
+                                        .get_created_at()
+                                        .with_timezone(&chrono_tz::America::Chicago)
+                                        .format("%Y-%m-%d %H:%M:%S %Z")
+                                        .to_string()}
+                                </div>
                             </div>
                         </div>
-                    </div>
+
+                    </Layout>
                 }
                     .into_any()
-            } else {
-                view! { <div></div> }.into_any()
-            }}
-        </Layout>
+            })}
+        </Suspense>
     }
 }
 
@@ -261,7 +295,7 @@ pub fn JournalInvites() -> impl IntoView {
                             {if let Some(Err(e)) = invite_action.value().get() {
                                 view! {
                                     <p>
-                                        "An error occured while creating the invitation: "
+                                        "An error occurred while creating the invitation: "
                                         {e.to_string()}
                                     </p>
                                 }
