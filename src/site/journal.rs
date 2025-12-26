@@ -131,8 +131,7 @@ pub fn JournalDetail() -> impl IntoView {
                 let journals = match journals_res.clone() {
                     Ok(s) => s,
                     Err(e) => {
-                        return 
-                        view! {
+                        return view! {
                             <LoginRedirect res=journals_res />
 
                             "An error occurred while fetching journals: "
