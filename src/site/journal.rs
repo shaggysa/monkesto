@@ -1,4 +1,3 @@
-use super::LoginRedirect;
 use super::layout::Layout;
 use crate::api::main_api;
 use leptos::prelude::*;
@@ -52,8 +51,6 @@ pub fn JournalList() -> impl IntoView {
                         }
                         Err(e) => {
                             return view! {
-                                <LoginRedirect res=journals_res />
-
                                 <p>"An error occurred while fetching journals: " {e.to_string()}</p>
                             }
                                 .into_any();
@@ -132,8 +129,6 @@ pub fn JournalDetail() -> impl IntoView {
                     Ok(s) => s,
                     Err(e) => {
                         return view! {
-                            <LoginRedirect res=journals_res />
-
                             "An error occurred while fetching journals: "
                             {e.to_string()}
                         }
@@ -144,7 +139,7 @@ pub fn JournalDetail() -> impl IntoView {
                     .associated
                     .into_iter()
                     .find(|j| j.get_id().to_string() == journal_id()) else {
-                    return view! { <p>"Unable to find journal".to_string()</p> }.into_any()
+                    return view! { <p>"Unable to find journal"</p> }.into_any()
                 };
                 let journal_owner_resource = Resource::new(
                     move || (),

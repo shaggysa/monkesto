@@ -1,4 +1,7 @@
-use crate::api::main_api::LogOut;
+use crate::api::{
+    main_api::{self, LogOut},
+    return_types::KnownErrors,
+};
 use leptos::prelude::*;
 
 #[component]
@@ -9,6 +12,10 @@ pub fn Layout(
     children: Children,
 ) -> impl IntoView {
     let logout_action = ServerAction::<LogOut>::new();
+    let user_id_resource = Resource::new(
+        move || (),
+        |_| async move { main_api::get_user_id_from_session().await },
+    );
 
     view! {
         <div class="min-h-full">
@@ -17,7 +24,7 @@ pub fn Layout(
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div class="flex justify-between h-16">
                         <div class="flex items-center">
-                            <img src="/logo.svg" alt="Monkesto" class="h-8 w-auto" />
+                            <img src="/public/logo.svg" alt="Monkesto" class="h-8 w-auto" />
                             <span class="ml-4 text-xl font-bold text-gray-900 dark:text-white">
                                 "Monkesto"
                             </span>
@@ -79,6 +86,24 @@ pub fn Layout(
             <div class="flex-1 p-6">
                 <div class="max-w-7xl mx-auto">
                     <div class="flex flex-col gap-6 sm:mx-auto sm:w-full sm:max-w-sm">
+                        // redirect to the login page if the user's session id isn't associated with a logged in account
+                        <Suspense>
+                            {Suspend::new(async move {
+                                if user_id_resource
+                                    .await
+                                    .is_err_and(|e| {
+                                        Some(KnownErrors::NotLoggedIn)
+                                            == KnownErrors::parse_error(e)
+                                    })
+                                {
+                                    view! { <meta http-equiv="refresh" content="0; url=/login" /> }
+                                        .into_any()
+                                } else {
+                                    view! { "" }.into_any()
+                                }
+                            })}
+                        </Suspense>
+
                         {children()}
                     </div>
                 </div>

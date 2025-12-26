@@ -22,6 +22,7 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
             <head>
                 <meta charset="utf-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
+                <link rel="icon" type="image/x-icon" href="/public/favicon.ico" />
                 <AutoReload options=options.clone() />
                 <HydrationScripts options islands=true />
                 <MetaTags />
