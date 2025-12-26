@@ -20,7 +20,7 @@ bitflags! {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct BalanceUpdate {
-    pub account_name: String,
+    pub account_id: Uuid,
     pub changed_by: i64,
 }
 
@@ -35,7 +35,7 @@ pub enum JournalEvent {
     Created { name: String, owner: Uuid },
     Renamed { name: String },
     CreatedAccount { account_name: String },
-    DeletedAccount { account_name: String },
+    DeletedAccount { account_id: Uuid },
     AddedEntry { transaction: Transaction },
     Deleted,
 }
@@ -95,7 +95,7 @@ pub struct JournalState {
     pub name: String,
     pub created_at: chrono::DateTime<Utc>,
     pub owner: Uuid,
-    pub accounts: HashMap<String, i64>,
+    pub accounts: HashMap<Uuid, (String, i64)>,
     pub transactions: Vec<Transaction>,
     pub deleted: bool,
 }
@@ -155,16 +155,16 @@ impl JournalState {
             JournalEvent::Renamed { name } => self.name = name,
 
             JournalEvent::CreatedAccount { account_name } => {
-                _ = self.accounts.insert(account_name, 0)
+                _ = self.accounts.insert(Uuid::new_v4(), (account_name, 0))
             }
-            JournalEvent::DeletedAccount { account_name } => {
-                _ = self.accounts.remove(&account_name)
+            JournalEvent::DeletedAccount { account_id } => {
+                _ = self.accounts.remove(&account_id);
             }
             JournalEvent::AddedEntry { transaction } => {
                 for balance_update in &transaction.updates {
                     self.accounts
-                        .entry(balance_update.account_name.clone())
-                        .and_modify(|balance| *balance += balance_update.changed_by);
+                        .entry(balance_update.account_id)
+                        .and_modify(|(_, balance)| *balance += balance_update.changed_by);
                 }
                 self.transactions.push(transaction);
             }

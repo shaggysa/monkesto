@@ -512,11 +512,8 @@ pub async fn get_accounts() -> Result<Vec<Account>, ServerFnError> {
     )
     .await?;
 
-    for account in journal_state.accounts {
-        accounts.push(Account {
-            name: account.0,
-            balance: account.1,
-        });
+    for (id, (name, balance)) in journal_state.accounts {
+        accounts.push(Account { id, name, balance });
     }
 
     Ok(accounts)
@@ -524,7 +521,6 @@ pub async fn get_accounts() -> Result<Vec<Account>, ServerFnError> {
 
 #[server]
 pub async fn add_account(journal_id: Uuid, account_name: String) -> Result<(), ServerFnError> {
-    use journal::JournalEventType::*;
     use user::UserEventType::*;
 
     let session_id = extensions::get_session_id().await?;
@@ -551,40 +547,19 @@ pub async fn add_account(journal_id: Uuid, account_name: String) -> Result<(), S
     )
     .await?;
 
-    if user_state.owned_journals.contains(&journal_id) {
-        let state =
-            JournalState::build(&journal_id, vec![CreatedAccount, DeletedAccount], &pool).await?;
-
-        if state.accounts.contains_key(&account_name) {
-            return Err(ServerFnError::ServerError(
-                KnownErrors::AccountExists.to_string()?,
-            ));
-        }
-
+    if user_state.owned_journals.contains(&journal_id)
+        || user_state
+            .accepted_journal_invites
+            .get(&journal_id)
+            .is_some_and(|tenant_info| {
+                tenant_info
+                    .tenant_permissions
+                    .contains(Permissions::ADDACCOUNT)
+            })
+    {
         JournalEvent::CreatedAccount { account_name }
             .push_db(&journal_id, &pool)
             .await?;
-    } else if user_state
-        .accepted_journal_invites
-        .get(&journal_id)
-        .is_some_and(|tenant_info| {
-            tenant_info
-                .tenant_permissions
-                .contains(Permissions::ADDACCOUNT)
-        })
-    {
-        let state =
-            JournalState::build(&journal_id, vec![CreatedAccount, DeletedAccount], &pool).await?;
-
-        if state.accounts.contains_key(&account_name) {
-            return Err(ServerFnError::ServerError(
-                KnownErrors::AccountExists.to_string()?,
-            ));
-        } else {
-            JournalEvent::CreatedAccount { account_name }
-                .push_db(&journal_id, &pool)
-                .await?;
-        }
     } else {
         return Err(ServerFnError::ServerError(
             KnownErrors::PermissionError {
@@ -600,7 +575,7 @@ pub async fn add_account(journal_id: Uuid, account_name: String) -> Result<(), S
 #[server]
 pub async fn transact(
     journal_id: String,
-    account_names: Vec<String>,
+    account_ids: Vec<Uuid>,
     balance_add_cents: Vec<String>,
     balance_remove_cents: Vec<String>,
 ) -> Result<(), ServerFnError> {
@@ -662,7 +637,7 @@ pub async fn transact(
         if account_sum != 0 {
             total_balance_change += account_sum;
             updates.push(BalanceUpdate {
-                account_name: account_names[i].clone(),
+                account_id: account_ids[i],
                 changed_by: account_sum,
             });
         }

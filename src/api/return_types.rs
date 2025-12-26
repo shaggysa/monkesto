@@ -70,6 +70,7 @@ impl KnownErrors {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Account {
+    pub id: Uuid,
     pub name: String,
     pub balance: i64,
 }
